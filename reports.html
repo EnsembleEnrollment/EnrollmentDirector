@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Reports — Enrollment Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --coral:#F07050;--coral-h:#E05838;--coral-light:#FEF0EB;--coral-mid:#F5C4B3;--coral-dark:#7A3020;
+  --green:#16A34A;--green-light:#F0FDF4;--green-border:#86EFAC;--green-text:#166534;
+  --amber:#D97706;--amber-light:#FFFBEB;--amber-border:#FDE68A;--amber-text:#92400E;
+  --red:#DC2626;--red-light:#FEF2F2;--red-border:#FECACA;--red-text:#991B1B;
+  --blue:#3B82F6;--purple:#8B5CF6;--teal:#0D9488;--pink:#DB2777;
+  --bg:#F4F4F6;--surface:#fff;--border:#E8E5E0;
+  --text:#1A1A2E;--text-2:#6B6B80;--text-3:#A8A5B0;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:60}
+.back-btn{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);text-decoration:none;transition:background .12s;flex-shrink:0;font-family:inherit;cursor:pointer}
+.back-btn:hover{background:var(--bg)}
+.topbar-title{font-size:15px;font-weight:700;color:var(--text);flex:1}
+.date-pill{font-size:12px;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.date-pill svg{color:var(--coral)}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:11px 16px;font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;user-select:none;transition:color .12s;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--coral);border-bottom-color:var(--coral);font-weight:600}
+.tab svg{width:14px;height:14px}
+
+/* ── LAYOUT ── */
+.main{padding:18px 20px;max-width:1140px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;transition:background .12s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--coral);color:#fff;border-color:var(--coral)}
+.btn-primary:hover{background:var(--coral-h)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:#15803D}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent;padding:4px 7px}
+.btn-ghost:hover{background:var(--bg)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── CONTROLS BAR ── */
+.cbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.cbar-l{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cbar-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cgrp{display:flex;align-items:center;gap:6px}
+.clbl{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.csel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;outline:none;cursor:pointer}
+.csel:focus{border-color:var(--coral);background:var(--surface)}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:14px}
+.card-ttl{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+
+/* ── SUMMARY GRID ── */
+.sgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.scard-zone{position:absolute;top:0;left:0;width:4px;height:100%;border-radius:var(--r) 0 0 var(--r)}
+.scard-lbl{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.scard-val{font-size:22px;font-weight:700;color:var(--text);line-height:1}
+.scard-sub{font-size:11px;color:var(--text-3);margin-top:4px}
+
+/* ── ZONE BADGE ── */
+.zone-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
+.zone-green{background:var(--green-light);color:var(--green-text);border-color:var(--green-border)}
+.zone-yellow{background:var(--amber-light);color:var(--amber-text);border-color:var(--amber-border)}
+.zone-red{background:var(--red-light);color:var(--red-text);border-color:var(--red-border)}
+.zone-none{background:#F5F5F4;color:#aaa;border-color:#E5E5E3}
+.zdot{width:7px;height:7px;border-radius:50%}
+
+/* ── QUOTA BANNER ── */
+.quota-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.quota-main{flex:1;min-width:200px}
+.quota-title{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.quota-track{height:10px;background:var(--bg);border-radius:20px;overflow:hidden;border:1px solid var(--border);position:relative}
+.quota-fill{height:100%;border-radius:20px;transition:width .4s ease}
+.quota-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px}
+.quota-stats{display:flex;gap:20px;flex-wrap:wrap}
+.qstat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.qstat-num{font-size:18px;font-weight:700;color:var(--text)}
+.qstat-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}
+.quota-input-wrap{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.quota-input{width:72px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;background:var(--bg);color:var(--text);font-family:inherit;outline:none;text-align:center}
+.quota-input:focus{border-color:var(--coral);background:var(--surface)}
+
+/* ── SECTION ROW ── */
+.secrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.si{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid #F5F3F0}
+.si:last-child{border-bottom:none;padding-bottom:0}
+.si-lbl{font-size:12px;color:var(--text-2)}
+.si-sub{font-size:10px;color:var(--text-3);margin-top:1px}
+.si-val{font-size:13px;font-weight:700;color:var(--text);text-align:right}
+.si-zone{font-size:10px;margin-top:2px;text-align:right}
+
+/* ── TABLE ── */
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.thead{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.thead-title{font-size:13px;font-weight:700;color:var(--text)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:860px}
+thead tr{border-bottom:1px solid var(--border)}
+thead th{padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid #F5F3F0;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#FAFAF9}
+tbody tr.arow{background:#FEF8F5}
+tbody td{padding:7px 10px;text-align:right;vertical-align:middle}
+tbody td:first-child{text-align:left;font-weight:600;white-space:nowrap}
+.ctd{color:var(--text-2);font-weight:600}
+.ei{width:58px;text-align:right;border:1px solid transparent;border-radius:6px;padding:3px 5px;font-size:12px;background:transparent;font-family:inherit;color:var(--text);outline:none}
+.ei:focus{border-color:var(--coral);background:#fff}
+.ei:hover:not(:focus){border-color:var(--border);background:#FAFAF9}
+.dbtn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:14px;padding:2px 5px;border-radius:4px;line-height:1;font-family:inherit}
+.dbtn:hover{color:var(--red-text);background:var(--red-light)}
+.unsaved-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block;margin-left:5px;vertical-align:middle;flex-shrink:0}
+.save-bar{display:none;align-items:center;gap:10px;padding:9px 14px;background:var(--amber-light);border:1px solid var(--amber-border);border-radius:var(--r);margin-bottom:10px;font-size:13px;color:var(--amber-text);font-weight:500}
+.save-bar.show{display:flex}
+.save-bar .btn-save-now{background:var(--amber);color:#fff;border-color:var(--amber);padding:6px 14px;font-size:12px}
+.save-bar .btn-save-now:hover{background:#B45309}
+.ei.dirty{border-color:var(--amber)!important;background:#FFFBEB!important}
+
+/* ── GRAPH ── */
+.graph-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.graph-header{padding:16px 20px 0;border-bottom:none}
+.graph-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px}
+.graph-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;padding:0 20px 14px;border-bottom:1px solid var(--border)}
+.gc-section{display:flex;flex-direction:column;gap:6px}
+.gc-lbl{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.metric-chips{display:flex;gap:5px;flex-wrap:wrap}
+.mchip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text-2);transition:all .12s;user-select:none}
+.mchip.on{border-color:var(--coral);color:var(--coral);background:var(--coral-light);font-weight:600}
+.advisor-toggles{display:flex;gap:5px;flex-wrap:wrap}
+.atoggle{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:2px solid;transition:all .12s;user-select:none;display:flex;align-items:center;gap:5px}
+.atoggle.off{opacity:.35}
+.month-range-pickers{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.month-range-pickers input[type=month]{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;outline:none}
+.month-range-pickers input[type=month]:focus{border-color:var(--coral);background:var(--surface)}
+.graph-canvas-wrap{padding:20px;position:relative;height:340px}
+.graph-legend{padding:0 20px 16px;display:flex;gap:16px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--text)}
+.leg-line{width:24px;height:3px;border-radius:2px}
+
+/* ── COMPARE ── */
+.cmp-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.adv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:14px}
+.adv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;overflow:hidden;position:relative}
+.adv-card-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.adv-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+
+/* ── IMPORT ── */
+.imp-body{padding:16px 18px}
+.imp-hint{font-size:12px;color:var(--text-2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6}
+.imp-hint code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ifield label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+.ifield input,.ifield select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;outline:none}
+.ifield input:focus,.ifield select:focus{border-color:var(--coral);background:var(--surface)}
+.log-grid{display:grid;grid-template-columns:80px 1fr 1fr 70px 80px 30px;gap:6px;padding:8px 12px;border-bottom:1px solid #F5F3F0;font-size:12px;align-items:center}
+.log-grid.hdr{background:var(--bg);font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}
+.log-grid:last-child{border-bottom:none}
+.ldel{color:var(--text-3);cursor:pointer;text-align:center;font-size:13px}
+.ldel:hover{color:var(--red-text)}
+
+/* ── MONTH-END REPORT ── */
+.mer-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.mer-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.mer-body{padding:16px 20px}
+.mer-table{width:100%;border-collapse:collapse;font-size:13px}
+.mer-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--border)}
+.mer-table td{padding:10px 12px;border-bottom:1px solid #F5F3F0;vertical-align:middle}
+.mer-table tr:last-child td{border-bottom:none}
+.mer-notes{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;resize:vertical;background:var(--bg);color:var(--text);outline:none;min-height:60px}
+.mer-notes:focus{border-color:var(--coral);background:var(--surface)}
+
+/* ── MODAL ── */
+.mbd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;align-items:center;justify-content:center;padding:16px}
+.mbd.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;padding:22px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.5}
+.mf{margin-bottom:11px}
+.mf label{font-size:12px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.mf input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;outline:none}
+.mf input:focus{border-color:var(--coral);background:var(--surface)}
+.mbtn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.ts{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+/* ── PRINT STYLES ── */
+@media print{
+  .topbar,.tabs,.cbar,.no-print{display:none!important}
+  .main{padding:0;max-width:100%}
+  body{background:#fff}
+  .panel{display:block!important}
+  .mer-wrap{box-shadow:none;border:1px solid #ccc}
+}
+
+/* ── MOBILE ── */
+@media(max-width:700px){
+  .topbar{padding:10px 14px}.date-pill{display:none}
+  .main{padding:12px}
+  .sgrid{grid-template-columns:1fr 1fr;gap:8px}
+  .secrow{grid-template-columns:1fr;gap:10px}
+  .cbar{padding:10px}
+  .igrid{grid-template-columns:1fr}
+  .graph-canvas-wrap{height:240px;padding:12px}
+  .graph-controls{flex-direction:column;gap:12px}
+  .log-grid{grid-template-columns:70px 1fr 1fr 60px 30px;font-size:11px}
+  .adv-cards{grid-template-columns:1fr 1fr}
+  .tab span{display:none}
+  .tabs{padding:0 10px}
+  .sgrid .scard:nth-child(5){grid-column:1/-1}
+}
+@media(max-width:400px){
+  .sgrid{grid-template-columns:1fr 1fr}
+  .scard-val{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a class="back-btn" href="director-hub.html">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11L5 7l4-4"/></svg>
+    Director Hub
+  </a>
+  <div class="topbar-title">Monthly Performance Reports</div>
+  <div class="date-pill">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5"/><path d="M4.5 1.5v2M9.5 1.5v2M1.5 6h11"/></svg>
+    <span id="today-date"></span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('individual',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="5" r="2.5"/><path d="M3 13c0-2.761 2.239-5 5-5s5 2.239 5 5"/></svg>
+    <span>Individual</span>
+  </div>
+  <div class="tab" onclick="switchTab('compare',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="9" width="3" height="5" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="3" width="3" height="11" rx="1"/></svg>
+    <span>Compare</span>
+  </div>
+  <div class="tab" onclick="switchTab('graph',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l3-4 3 2 3-5 3 2"/></svg>
+    <span>Line Graph</span>
+  </div>
+  <div class="tab" onclick="switchTab('report',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="2" width="10" height="12" rx="2"/><path d="M6 6h4M6 9h4M6 12h2"/></svg>
+    <span>Month-End Report</span>
+  </div>
+  <div class="tab" onclick="switchTab('import',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2v8M5 7l3 3 3-3M3 12h10"/></svg>
+    <span>Import Rates</span>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ════════════ INDIVIDUAL ════════════ -->
+<div class="panel active" id="panel-individual">
+  <div class="cbar">
+    <div class="cbar-l">
+      <div class="cgrp"><span class="clbl">Advisor</span><select class="csel" id="ind-adv" onchange="renderInd()"></select></div>
+      <div class="cgrp"><span class="clbl">Month</span><select class="csel" id="ind-mon" onchange="renderInd()"></select></div>
+    </div>
+    <div class="cbar-r">
+      <button class="btn" onclick="openTierModal()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14"/></svg>
+        Zone settings
+      </button>
+      <button class="btn btn-primary" onclick="addRow()">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        Add month
+      </button>
+    </div>
+  </div>
+
+  <!-- Quota banner -->
+  <div class="quota-banner" id="quota-banner">
+    <div class="quota-main">
+      <div class="quota-title">Monthly quota progress</div>
+      <div class="quota-track"><div class="quota-fill" id="quota-fill" style="width:0%"></div></div>
+      <div class="quota-labels"><span id="quota-label-l">0 enrolled</span><span id="quota-label-r">Quota: —</span></div>
+    </div>
+    <div class="quota-stats">
+      <div class="qstat"><div class="qstat-num" id="qs-pct">—</div><div class="qstat-lbl">of quota</div></div>
+      <div class="qstat"><div class="qstat-num" id="qs-pace">—</div><div class="qstat-lbl">actual/day</div></div>
+      <div class="qstat"><div class="qstat-num" id="qs-exp">—</div><div class="qstat-lbl">expected/day</div></div>
+    </div>
+    <div class="quota-input-wrap">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Set quota</span>
+        <input class="quota-input" type="number" id="quota-input" min="0" placeholder="0" oninput="saveQuota()" title="Monthly enrollment quota for this advisor"/>
+      </div>
+      <div id="zone-badge-wrap" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div class="sgrid" id="ind-summary"></div>
+
+  <div class="secrow">
+    <div class="card"><div class="card-ttl">Activity</div><div id="ind-act"></div></div>
+    <div class="card"><div class="card-ttl">Conversion rates</div><div id="ind-conv"></div></div>
+    <div class="card"><div class="card-ttl">Speed of answer</div><div id="ind-soa"></div></div>
+  </div>
+
+  <!-- unsaved changes bar -->
+  <div class="save-bar" id="save-bar">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 10.5v.5"/></svg>
+    You have unsaved changes
+    <button class="btn btn-save-now" onclick="saveAllChanges()">Save changes</button>
+    <button class="btn btn-sm btn-ghost" onclick="discardChanges()" style="margin-left:auto;color:var(--text-2)">Discard</button>
+  </div>
+
+  <div class="tc">
+    <div class="thead">
+      <div class="thead-title">All months — <span id="ind-tname" style="color:var(--coral)"></span></div>
+      <button class="btn btn-sm" onclick="addRow()">
+        <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        Add row
+      </button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th style="text-align:left">Month</th>
+          <th>Quota</th><th>Enrollments</th><th>Days</th><th>Hours</th>
+          <th>Inbound</th><th>Outbound</th><th>Spd (s)</th>
+          <th style="color:var(--coral)">Pace</th>
+          <th style="color:var(--coral)">Exp/day</th>
+          <th style="color:var(--coral)">OB/day</th>
+          <th style="color:var(--coral)">IB%</th>
+          <th style="color:var(--coral)">OB%</th>
+          <th>Zone</th><th></th>
+        </tr></thead>
+        <tbody id="ind-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ COMPARE ════════════ -->
+<div class="panel" id="panel-compare">
+  <div class="cbar">
+    <div class="cbar-l">
+      <div class="cgrp"><span class="clbl">Month</span><select class="csel" id="cmp-mon" onchange="renderCompare()"></select></div>
+      <div class="cgrp"><span class="clbl">Sort by</span>
+        <select class="csel" id="cmp-sort" onchange="renderCompare()">
+          <option value="pct">Quota %</option>
+          <option value="enrollments">Enrollments</option>
+          <option value="pace">Pace</option>
+          <option value="hours">Hours</option>
+          <option value="ibConv">IB conv%</option>
+          <option value="obConv">OB conv%</option>
+          <option value="soa">Speed of answer</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="cmp-content"></div>
+</div>
+
+<!-- ════════════ GRAPH ════════════ -->
+<div class="panel" id="panel-graph">
+  <div class="graph-wrap">
+    <div class="graph-header">
+      <div class="graph-title" id="graph-title">Performance over time</div>
+    </div>
+    <div class="graph-controls">
+      <div class="gc-section">
+        <div class="gc-lbl">Metric</div>
+        <div class="metric-chips" id="metric-chips"></div>
+      </div>
+      <div class="gc-section">
+        <div class="gc-lbl">Date range</div>
+        <div class="month-range-pickers">
+          <input type="month" id="graph-from" onchange="renderGraph()"/>
+          <span style="color:var(--text-3);font-size:13px">to</span>
+          <input type="month" id="graph-to" onchange="renderGraph()"/>
+        </div>
+      </div>
+      <div class="gc-section">
+        <div class="gc-lbl">Advisors</div>
+        <div class="advisor-toggles" id="adv-toggles"></div>
+      </div>
+    </div>
+    <div class="graph-canvas-wrap"><canvas id="line-chart"></canvas></div>
+    <div class="graph-legend" id="graph-legend"></div>
+  </div>
+</div>
+
+<!-- ════════════ MONTH-END REPORT ════════════ -->
+<div class="panel" id="panel-report">
+  <div class="cbar no-print">
+    <div class="cbar-l">
+      <div class="cgrp"><span class="clbl">Month</span><select class="csel" id="rep-mon" onchange="renderReport()"></select></div>
+    </div>
+    <div class="cbar-r">
+      <button class="btn btn-green" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M5 11h2M9 11h2"/></svg>
+        Download / Print
+      </button>
+    </div>
+  </div>
+
+  <div class="mer-wrap">
+    <div class="mer-head">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)" id="rep-title">Month-End Performance Report</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px" id="rep-sub"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3)" id="rep-generated"></div>
+    </div>
+    <div class="mer-body">
+      <div id="rep-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ IMPORT RATES ════════════ -->
+<div class="panel" id="panel-import">
+  <div class="tc">
+    <div class="thead">
+      <div class="thead-title">Import conversion rates from external reports</div>
+    </div>
+    <div class="imp-body">
+      <div class="imp-hint">
+        Enter numbers directly from another app (e.g. <code>43 leads out of 210 calls</code>) or paste a percentage. Tag it with an advisor, month, and source so you remember where it came from.
+      </div>
+      <div class="igrid">
+        <div class="ifield"><label>Advisor</label><select id="imp-adv"></select></div>
+        <div class="ifield"><label>Month</label><select id="imp-mon"></select></div>
+        <div class="ifield"><label>Metric label</label><input type="text" id="imp-lbl" placeholder="e.g. Trial conversion, Lead rate…"/></div>
+        <div class="ifield"><label>Source app / report</label><input type="text" id="imp-src" placeholder="e.g. Jackrabbit, Mindbody…"/></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <div class="ifield" style="flex:1;min-width:90px"><label>Hits (numerator)</label><input type="number" id="imp-num" min="0" placeholder="43" oninput="calcImpRate()"/></div>
+        <div style="font-size:18px;color:var(--text-3);padding-bottom:8px">÷</div>
+        <div class="ifield" style="flex:1;min-width:90px"><label>Total (denominator)</label><input type="number" id="imp-den" min="1" placeholder="210" oninput="calcImpRate()"/></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-bottom:6px">
+          <span style="font-size:12px;color:var(--text-3)">— or —</span>
+          <div class="ifield" style="min-width:90px"><label>Direct %</label><input type="number" id="imp-dir" min="0" max="100" step=".1" placeholder="20.5" oninput="useDirectRate()"/></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:6px">
+          <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Rate</span>
+          <div id="imp-rate-disp" style="font-size:22px;font-weight:700;color:var(--coral);min-width:60px;text-align:center">—%</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveImport()">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        Save rate
+      </button>
+      <div id="imp-log" style="margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Saved rates</span>
+          <span id="imp-count" style="font-size:12px;color:var(--coral);font-weight:600"></span>
+        </div>
+        <div class="log-grid hdr"><div>Month</div><div>Advisor</div><div>Metric</div><div>Rate</div><div>Source</div><div></div></div>
+        <div id="imp-log-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ZONE SETTINGS MODAL -->
+<div class="mbd" id="zone-modal">
+  <div class="modal">
+    <h3>Performance zone settings</h3>
+    <p class="modal-sub">Set thresholds based on <strong>% of expected pace</strong> (actual ÷ expected × 100). Expected pace = quota ÷ working days in month.</p>
+    <div class="mf"><label><span class="ts" style="background:var(--green)"></span> Green — at or above (%)</label><input type="number" id="z-green" step="1" min="0" max="100"/></div>
+    <div class="mf"><label><span class="ts" style="background:var(--amber)"></span> Yellow — at or above (%)</label><input type="number" id="z-yellow" step="1" min="0" max="100"/></div>
+    <div class="mf" style="padding:10px 12px;background:var(--red-light);border-radius:8px;border:1px solid var(--red-border)"><span style="font-size:12px;color:var(--red-text)">Red — below the yellow threshold</span></div>
+    <div class="mbtn-row">
+      <button class="btn" onclick="closeZoneModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveZones()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════ CONFIG ══════════════ */
+const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const ACOLS = ['#F07050','#3B82F6','#8B5CF6','#0D9488','#DB2777','#F59E0B'];
+const METRICS = [
+  {key:'enrollments',label:'Enrollments'},
+  {key:'pace',label:'Pace/day'},
+  {key:'pct',label:'Quota %'},
+  {key:'hours',label:'Hours'},
+  {key:'inbound',label:'Inbound'},
+  {key:'outbound',label:'Outbound'},
+  {key:'obDay',label:'OB/day'},
+  {key:'ibConv',label:'IB conv%'},
+  {key:'obConv',label:'OB conv%'},
+  {key:'soa',label:'Speed of ans'},
+];
+
+/* ══════════════ SUPABASE ══════════════ */
+const SUPABASE_URL = 'https://uwsgychdjgszetkmtths.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2d5Y2hkamdzemV0a210dGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDQ5MTEsImV4cCI6MjA5MTY4MDkxMX0.8l0HEVlMiATqGWQW705W-_Kz5G7zQnq8OQ17IgeRs20';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let zones = {green:90, yellow:70};
+let advisors = [];
+let kpiData = {};
+let quotas = {};
+let importedRates = [];
+let nextImpId = 1;
+let currentTab = 'individual';
+let chartInst = null;
+let activeMetric = 'pace';
+let activeAdvs = {};
+let computedRate = null;
+let merNotes = {};
+let isLoading = false;
+
+/* ══════════════ HELPERS ══════════════ */
+const now = new Date();
+const toMK = d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const mlbl = k=>{ const[y,m]=k.split('-'); return MN[+m-1]+' '+y; };
+const initials = n=>n.split(' ').map(w=>w[0]).join('').toUpperCase();
+
+function workingDays(monthKey){
+  const[y,m]=monthKey.split('-').map(Number);
+  const days=new Date(y,m,0).getDate();
+  let count=0;
+  for(let d=1;d<=days;d++){const dow=new Date(y,m-1,d).getDay();if(dow>0&&dow<6)count++;}
+  return count;
+}
+
+function calc(r,quota){
+  const pace   = r.days>0     ? r.enrollments/r.days    : 0;
+  const obDay  = r.days>0     ? r.outbound/r.days        : 0;
+  const ibConv = r.inbound>0  ? r.enrollments/r.inbound*100  : 0;
+  const obConv = r.outbound>0 ? r.enrollments/r.outbound*100 : 0;
+  const wdays  = workingDays(r.month);
+  const expDay = quota>0&&wdays>0 ? quota/wdays : 0;
+  const pct    = expDay>0 ? pace/expDay*100 : null;
+  return {pace,obDay,ibConv,obConv,expDay,pct,wdays};
+}
+
+function getZone(pct){
+  if(pct===null) return {label:'No quota',cls:'zone-none',dot:'#ccc',color:'#ccc'};
+  if(pct>=zones.green)  return {label:'On Track',  cls:'zone-green', dot:'var(--green)', color:'var(--green)'};
+  if(pct>=zones.yellow) return {label:'Watch',     cls:'zone-yellow',dot:'var(--amber)', color:'var(--amber)'};
+  return {label:'Action needed',cls:'zone-red',dot:'var(--red)',color:'var(--red)'};
+}
+
+function getMetricVal(r,key,quota){
+  const c=calc(r,quota||0);
+  const m={enrollments:r.enrollments,pace:c.pace,hours:r.hours,inbound:r.inbound,
+    outbound:r.outbound,obDay:c.obDay,ibConv:c.ibConv,obConv:c.obConv,soa:r.soa,
+    days:r.days,pct:c.pct??0};
+  return m[key]??0;
+}
+
+function getQuota(aid,month){ return quotas[`${aid}-${month}`]||0; }
+function setQuota(aid,month,val){ quotas[`${aid}-${month}`]=val; }
+
+function fmtVal(key,v){
+  if(v===null||isNaN(v)) return '—';
+  if(key==='pct'||key.endsWith('Conv')) return v.toFixed(1)+'%';
+  if(key==='pace'||key==='obDay'||key==='expDay') return v.toFixed(2);
+  return Math.round(v);
+}
+
+/* ══════════════ SELECTORS ══════════════ */
+function buildMonthOpts(sel,def=true){
+  sel.innerHTML='';
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const o=document.createElement('option');
+    o.value=toMK(d);o.textContent=mlbl(o.value);
+    if(def&&i===0)o.selected=true;
+    sel.appendChild(o);
+  }
+}
+function buildAdvOpts(sel){ sel.innerHTML=advisors.map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+
+function populateAll(){
+  buildAdvOpts(document.getElementById('ind-adv'));
+  buildMonthOpts(document.getElementById('ind-mon'));
+  buildMonthOpts(document.getElementById('cmp-mon'));
+  buildAdvOpts(document.getElementById('imp-adv'));
+  buildMonthOpts(document.getElementById('imp-mon'));
+  buildMonthOpts(document.getElementById('rep-mon'));
+  buildMetricChips();
+  buildAdvToggles();
+  setGraphDefaultRange();
+}
+
+/* ══════════════ SUPABASE LOAD ══════════════ */
+function showLoadingState(msg){
+  const grid=document.getElementById('ind-summary');
+  if(grid) grid.innerHTML=`<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--text-3);font-size:13px;padding:1rem 0"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--coral);border-radius:50%;animation:spin .7s linear infinite"></div>${msg||'Loading…'}</div>`;
+}
+
+async function loadFromSupabase(){
+  isLoading=true;
+  showLoadingState('Loading team from database…');
+
+  /* 1. Load members */
+  const {data:membersData,error:mErr}=await db.from('members').select('id,first,last').order('first');
+  if(mErr){showToast('Error loading members: '+mErr.message,true);isLoading=false;return;}
+  advisors=membersData.map(m=>({id:m.id,name:m.first+' '+m.last}));
+  advisors.forEach(a=>{kpiData[a.id]=kpiData[a.id]||[];activeAdvs[a.id]=true;});
+
+  /* 2. Load KPI rows */
+  const {data:kpiRows,error:kErr}=await db.from('kpi_data').select('*');
+  if(kErr){showToast('Error loading KPI data: '+kErr.message,true);isLoading=false;return;}
+  kpiData={};
+  advisors.forEach(a=>kpiData[a.id]=[]);
+  (kpiRows||[]).forEach(r=>{
+    if(kpiData[r.member_id]){
+      kpiData[r.member_id].push({
+        id:r.id, advisorId:r.member_id, month:r.month,
+        enrollments:+r.enrollments||0, days:+r.days||0, hours:+r.hours||0,
+        inbound:+r.inbound||0, outbound:+r.outbound||0, soa:+r.soa||0
+      });
+    }
+  });
+
+  /* 3. Load quotas */
+  const {data:quotaRows,error:qErr}=await db.from('kpi_quotas').select('*');
+  if(qErr){showToast('Error loading quotas: '+qErr.message,true);isLoading=false;return;}
+  quotas={};
+  (quotaRows||[]).forEach(q=>quotas[`${q.member_id}-${q.month}`]=+q.quota||0);
+
+  isLoading=false;
+  populateAll();
+  renderInd();
+}
+
+/* ══════════════ TAB SWITCHING ══════════════ */
+function switchTab(name,el){
+  currentTab=name;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='individual') renderInd();
+  if(name==='compare')    renderCompare();
+  if(name==='graph')      renderGraph();
+  if(name==='report')     renderReport();
+  if(name==='import')     renderImpLog();
+}
+
+/* ══════════════ INDIVIDUAL ══════════════ */
+function indAid(){ return parseInt(document.getElementById('ind-adv').value); }
+function indMon(){ return document.getElementById('ind-mon').value; }
+
+function renderInd(){
+  const aid=indAid(), month=indMon();
+  const adv=advisors.find(a=>a.id===aid);
+  const rows=(kpiData[aid]||[]).slice().sort((a,b)=>b.month.localeCompare(a.month));
+  const row=rows.find(r=>r.month===month);
+  const quota=getQuota(aid,month);
+  document.getElementById('ind-tname').textContent=adv?.name||'';
+  document.getElementById('quota-input').value=quota||'';
+  renderQuotaBanner(row,quota,month);
+  renderSummary(row,quota,'ind-summary');
+  renderSections(row,quota);
+  renderIndTable(rows,month,aid);
+}
+
+function renderQuotaBanner(row,quota,month){
+  const enrolled=row?row.enrollments:0;
+  const pct=quota>0?Math.min(100,enrolled/quota*100):0;
+  const c=row?calc(row,quota):null;
+  const zone=c?getZone(c.pct):getZone(null);
+  const fillColor=zone.color;
+
+  document.getElementById('quota-fill').style.width=pct.toFixed(1)+'%';
+  document.getElementById('quota-fill').style.background=fillColor;
+  document.getElementById('quota-label-l').textContent=enrolled+' enrolled';
+  document.getElementById('quota-label-r').textContent=quota?'Quota: '+quota:'No quota set';
+  document.getElementById('qs-pct').textContent=quota>0?pct.toFixed(0)+'%':'—';
+  document.getElementById('qs-pace').textContent=c?c.pace.toFixed(2):'—';
+  document.getElementById('qs-exp').textContent=c&&c.expDay>0?c.expDay.toFixed(2):'—';
+  document.getElementById('zone-badge-wrap').innerHTML=`<span class="zone-badge ${zone.cls}"><span class="zdot" style="background:${zone.dot}"></span>${zone.label}</span>`;
+}
+
+function saveQuota(){
+  const aid=indAid(),month=indMon();
+  const v=parseFloat(document.getElementById('quota-input').value)||0;
+  setQuota(aid,month,v);
+  renderInd();
+}
+
+function renderSummary(row,quota,targetId){
+  const el=document.getElementById(targetId);
+  if(!row){
+    el.innerHTML=['Enrollments','Pace/day','Hours worked','Quota %','Zone'].map(l=>
+      `<div class="scard"><div class="scard-lbl">${l}</div><div class="scard-val" style="color:var(--text-3)">—</div></div>`
+    ).join('');
+    return;
+  }
+  const c=calc(row,quota);
+  const zone=getZone(c.pct);
+  el.innerHTML=`
+    <div class="scard" style="border-left:3px solid var(--coral)">
+      <div class="scard-zone" style="background:var(--coral)"></div>
+      <div class="scard-lbl">Enrollments</div><div class="scard-val">${row.enrollments}</div>
+      <div class="scard-sub">${row.days} days worked</div>
+    </div>
+    <div class="scard">
+      <div class="scard-lbl">Pace / day</div><div class="scard-val">${c.pace.toFixed(2)}</div>
+      <div class="scard-sub">exp: ${c.expDay>0?c.expDay.toFixed(2):'—'}/day</div>
+    </div>
+    <div class="scard">
+      <div class="scard-lbl">Hours worked</div><div class="scard-val">${row.hours}</div>
+      <div class="scard-sub">${row.days>0?(row.hours/row.days).toFixed(1):'—'} hrs/day avg</div>
+    </div>
+    <div class="scard">
+      <div class="scard-lbl">Quota %</div>
+      <div class="scard-val" style="color:${zone.color}">${c.pct!==null?c.pct.toFixed(0)+'%':'—'}</div>
+      <div class="scard-sub">${quota>0?'quota: '+quota:'no quota set'}</div>
+    </div>
+    <div class="scard">
+      <div class="scard-lbl">Zone</div>
+      <div style="margin-top:6px"><span class="zone-badge ${zone.cls}"><span class="zdot" style="background:${zone.dot}"></span>${zone.label}</span></div>
+      <div class="scard-sub" style="margin-top:6px">≥${zones.green}%=green ≥${zones.yellow}%=yellow</div>
+    </div>`;
+}
+
+function siHtml(lbl,val,sub,zoneHtml){
+  return `<div class="si">
+    <div><div class="si-lbl">${lbl}</div>${sub?`<div class="si-sub">${sub}</div>`:''}</div>
+    <div style="text-align:right"><div class="si-val">${val}</div>${zoneHtml?`<div class="si-zone">${zoneHtml}</div>`:''}</div>
+  </div>`;
+}
+
+function renderSections(row,quota){
+  const na='<div style="color:var(--text-3);font-size:12px;padding:6px 0">No data for this month</div>';
+  if(!row){['ind-act','ind-conv','ind-soa'].forEach(id=>document.getElementById(id).innerHTML=na);return;}
+  const c=calc(row,quota);
+  document.getElementById('ind-act').innerHTML=
+    siHtml('Days worked',row.days)+
+    siHtml('Inbound calls',row.inbound)+
+    siHtml('Outbound calls',row.outbound)+
+    siHtml('Outbound / day',c.obDay.toFixed(1));
+  document.getElementById('ind-conv').innerHTML=
+    siHtml('Inbound conversion',c.ibConv.toFixed(1)+'%','enrollments ÷ inbound')+
+    siHtml('Outbound conversion',c.obConv.toFixed(1)+'%','enrollments ÷ outbound');
+  const soaColor=row.soa<30?'var(--green)':row.soa<60?'var(--amber)':'var(--red)';
+  const soaLbl=row.soa<30?'Excellent':row.soa<60?'Acceptable':'Needs improvement';
+  document.getElementById('ind-soa').innerHTML=
+    siHtml('Avg speed of answer',row.soa+'s')+
+    `<div style="margin-top:10px">
+      <div style="height:6px;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border)">
+        <div style="height:100%;width:${Math.min(100,Math.round(row.soa/90*100))}%;background:${soaColor};border-radius:10px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:3px"><span>${soaLbl}</span><span>${row.soa}s</span></div>
+    </div>`;
+}
+
+function renderIndTable(rows,activeMonth,aid){
+  const tbody=document.getElementById('ind-tbody');
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="15" style="text-align:center;padding:2rem;color:var(--text-3);font-size:13px">No data yet. Click "Add month" to start.</td></tr>';return;}
+  tbody.innerHTML=rows.map(r=>{
+    const quota=getQuota(aid,r.month);
+    const c=calc(r,quota);
+    const zone=getZone(c.pct);
+    const isA=r.month===activeMonth;
+    const isDirtyRow=dirtyRows.has(r.id);
+    const isDirtyQ=dirtyQuotas.has(`${aid}-${r.month}`);
+    const ei=(f,v,w=55)=>`<input class="ei${(isDirtyRow&&f!=='quota')||isDirtyQ?' dirty':''}" type="number" min="0" value="${v}" style="width:${w}px" oninput="updField(${r.id},${aid},'${f}',this.value,this)"/>`;
+    const qei=`<input class="ei${isDirtyQ?' dirty':''}" type="number" min="0" value="${quota||''}" style="width:55px" placeholder="—" oninput="updQuota(${r.advisorId},'${r.month}',this.value,this)" title="Monthly quota"/>`;
+    return`<tr class="${isA?'arow':''}" data-rid="${r.id}">
+      <td style="white-space:nowrap">${mlbl(r.month)}${(isDirtyRow||isDirtyQ)?'<span class="unsaved-dot" title="Unsaved changes"></span>':''}</td>
+      <td>${qei}</td>
+      <td>${ei('enrollments',r.enrollments)}</td>
+      <td>${ei('days',r.days,44)}</td>
+      <td>${ei('hours',r.hours)}</td>
+      <td>${ei('inbound',r.inbound)}</td>
+      <td>${ei('outbound',r.outbound)}</td>
+      <td>${ei('soa',r.soa,44)}</td>
+      <td class="ctd col-pace" style="font-weight:700;color:var(--text)">${c.pace.toFixed(2)}</td>
+      <td class="ctd col-exp">${c.expDay>0?c.expDay.toFixed(2):'—'}</td>
+      <td class="ctd col-obd">${c.obDay.toFixed(1)}</td>
+      <td class="ctd col-ibc">${c.ibConv.toFixed(1)}%</td>
+      <td class="ctd col-obc">${c.obConv.toFixed(1)}%</td>
+      <td class="col-zone"><span class="zone-badge ${zone.cls}" style="font-size:10px;padding:1px 7px"><span class="zdot" style="background:${zone.dot}"></span>${zone.label}</span></td>
+      <td><button class="dbtn" onclick="delRow(${r.id},${aid})">&#x2715;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── DIRTY TRACKING ── */
+let dirtyRows=new Set(),dirtyQuotas=new Set();
+
+function markDirty(el){
+  if(el)el.classList.add('dirty');
+  document.getElementById('save-bar').classList.add('show');
+}
+
+function updField(id,aid,field,val,el){
+  const r=(kpiData[aid]||[]).find(x=>x.id===id);
+  if(!r)return;
+  r[field]=parseFloat(val)||0;
+  dirtyRows.add(id);
+  markDirty(el);
+  refreshCalcCols(r,aid);
+  const am=indMon();
+  if(r.month===am){const q=getQuota(aid,am);renderSummary(r,q,'ind-summary');renderQuotaBanner(r,q,am);renderSections(r,q);}
+}
+
+function refreshCalcCols(r,aid){
+  const quota=getQuota(aid,r.month);
+  const c=calc(r,quota);const zone=getZone(c.pct);
+  const tr=document.querySelector(`tr[data-rid="${r.id}"]`);
+  if(!tr)return;
+  tr.querySelector('.col-pace').textContent=c.pace.toFixed(2);
+  tr.querySelector('.col-exp').textContent=c.expDay>0?c.expDay.toFixed(2):'—';
+  tr.querySelector('.col-obd').textContent=c.obDay.toFixed(1);
+  tr.querySelector('.col-ibc').textContent=c.ibConv.toFixed(1)+'%';
+  tr.querySelector('.col-obc').textContent=c.obConv.toFixed(1)+'%';
+  const zEl=tr.querySelector('.col-zone');
+  if(zEl)zEl.innerHTML=`<span class="zone-badge ${zone.cls}" style="font-size:10px;padding:1px 7px"><span class="zdot" style="background:${zone.dot}"></span>${zone.label}</span>`;
+}
+
+function updQuota(aid,month,val,el){
+  setQuota(aid,month,parseFloat(val)||0);
+  dirtyQuotas.add(`${aid}-${month}`);
+  markDirty(el);
+  (kpiData[aid]||[]).filter(r=>r.month===month).forEach(r=>refreshCalcCols(r,aid));
+  const am=indMon();
+  if(month===am){const row=(kpiData[aid]||[]).find(r=>r.month===month);const q=getQuota(aid,month);renderSummary(row,q,'ind-summary');renderQuotaBanner(row,q,month);renderSections(row,q);}
+}
+
+async function saveAllChanges(){
+  const btn=document.querySelector('.btn-save-now');
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
+
+  try{
+    /* Save dirty KPI rows */
+    for(const rowId of dirtyRows){
+      /* find which advisor has this row */
+      let row=null,aid=null;
+      for(const a of advisors){
+        const r=(kpiData[a.id]||[]).find(x=>x.id===rowId);
+        if(r){row=r;aid=a.id;break;}
+      }
+      if(!row)continue;
+
+      /* determine if this is a new row (uuid) or existing */
+      const isUUID=/^[0-9a-f-]{36}$/i.test(String(row.id));
+      if(isUUID){
+        /* UPDATE existing row */
+        const {error}=await db.from('kpi_data').update({
+          enrollments:row.enrollments,days:row.days,hours:row.hours,
+          inbound:row.inbound,outbound:row.outbound,soa:row.soa
+        }).eq('id',row.id);
+        if(error)throw new Error('KPI update failed: '+error.message);
+      } else {
+        /* INSERT new row — temp numeric id, get real uuid back */
+        const {data,error}=await db.from('kpi_data').insert({
+          member_id:row.advisorId,month:row.month,
+          enrollments:row.enrollments,days:row.days,hours:row.hours,
+          inbound:row.inbound,outbound:row.outbound,soa:row.soa
+        }).select().single();
+        if(error)throw new Error('KPI insert failed: '+error.message);
+        /* update local id to real uuid */
+        row.id=data.id;
+      }
+    }
+
+    /* Save dirty quotas */
+    for(const key of dirtyQuotas){
+      const [aid,month]=key.split(/-(.+)/);
+      const quota=quotas[key]||0;
+      /* upsert (insert or update) */
+      const {error}=await db.from('kpi_quotas').upsert({
+        member_id:aid,month,quota
+      },{onConflict:'member_id,month'});
+      if(error)throw new Error('Quota save failed: '+error.message);
+    }
+
+    dirtyRows.clear();dirtyQuotas.clear();
+    document.querySelectorAll('.ei.dirty').forEach(el=>el.classList.remove('dirty'));
+    document.getElementById('save-bar').classList.remove('show');
+    showToast('Changes saved.');
+    renderInd();
+
+  }catch(err){
+    showToast(err.message,true);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Save changes';}
+  }
+}
+
+function discardChanges(){
+  if(!confirm('Discard all unsaved changes?'))return;
+  dirtyRows.clear();dirtyQuotas.clear();
+  document.getElementById('save-bar').classList.remove('show');
+  renderInd();
+}
+
+function showToast(msg,isErr){
+  let t=document.getElementById('rpt-toast');
+  if(!t){t=document.createElement('div');t.id='rpt-toast';t.style.cssText='position:fixed;bottom:22px;right:22px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;color:#fff';document.body.appendChild(t);}
+  t.style.background=isErr?'#DC2626':'#16A34A';
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2800);
+}
+
+let nextTempId = -1; // negative = new unsaved row
+function addRow(){
+  const aid=indAid(),month=indMon();
+  if(!kpiData[aid])kpiData[aid]=[];
+  if(kpiData[aid].find(r=>r.month===month)){alert('Data for this month already exists.');return;}
+  const nr={id:nextTempId--,advisorId:aid,month,enrollments:0,days:0,hours:0,inbound:0,outbound:0,soa:0};
+  kpiData[aid].push(nr);
+  dirtyRows.add(nr.id);
+  document.getElementById('save-bar').classList.add('show');
+  renderInd();
+}
+async function delRow(id,aid){
+  if(!confirm("Delete this month's data? This cannot be undone."))return;
+  const isUUID=/^[0-9a-f-]{36}$/i.test(String(id));
+  if(isUUID){
+    const {error}=await db.from('kpi_data').delete().eq('id',id);
+    if(error){showToast('Delete failed: '+error.message,true);return;}
+  }
+  kpiData[aid]=(kpiData[aid]||[]).filter(r=>r.id!==id);
+  dirtyRows.delete(id);
+  if(!dirtyRows.size&&!dirtyQuotas.size)document.getElementById('save-bar').classList.remove('show');
+  renderInd();
+}
+
+/* ══════════════ COMPARE ══════════════ */
+function renderCompare(){
+  const month=document.getElementById('cmp-mon').value;
+  const sortKey=document.getElementById('cmp-sort').value;
+  const el=document.getElementById('cmp-content');
+
+  const rows=advisors.map((a,i)=>{
+    const r=(kpiData[a.id]||[]).find(x=>x.month===month);
+    const quota=getQuota(a.id,month);
+    const c=r?calc(r,quota):null;
+    const zone=c?getZone(c.pct):null;
+    return{a,i,r,c,zone,quota,color:ACOLS[i]};
+  });
+
+  const withData=rows.filter(x=>x.r);
+  if(!withData.length){el.innerHTML=`<div class="card" style="text-align:center;color:var(--text-3);font-size:13px">No data for ${mlbl(month)} yet.</div>`;return;}
+
+  const sortFn=(a,b)=>{
+    if(!a.r)return 1;if(!b.r)return -1;
+    const av=getMetricVal(a.r,sortKey,a.quota);
+    const bv=getMetricVal(b.r,sortKey,b.quota);
+    return sortKey==='soa'?av-bv:bv-av;
+  };
+  const sorted=[...rows].sort(sortFn);
+
+  // Advisor summary cards
+  let html=`<div class="adv-cards">`;
+  sorted.filter(x=>x.r).forEach(x=>{
+    const z=x.zone||{label:'No quota',cls:'zone-none',dot:'#ccc'};
+    const pct=x.c?.pct;
+    const barW=pct?Math.min(100,pct).toFixed(0):0;
+    const barColor=x.zone?.color||'#ccc';
+    html+=`<div class="adv-card">
+      <div class="adv-card-bar" style="background:${x.color}"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:6px">
+        <div class="adv-avatar" style="background:${x.color}">${initials(x.a.name)}</div>
+        <div><div style="font-size:13px;font-weight:700">${x.a.name}</div>
+          <div style="margin-top:3px"><span class="zone-badge ${z.cls}" style="font-size:10px"><span class="zdot" style="background:${z.dot}"></span>${z.label}</span></div>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="height:7px;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border)">
+          <div style="height:100%;width:${barW}%;background:${barColor};border-radius:10px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:3px">
+          <span>${x.r.enrollments} enrolled</span><span>Quota: ${x.quota||'—'}</span>
+        </div>
+      </div>
+      ${siHtml('Pace/day',x.c.pace.toFixed(2),'exp: '+(x.c.expDay>0?x.c.expDay.toFixed(2):'—'))}
+      ${siHtml('IB conv',x.c.ibConv.toFixed(1)+'%')}
+      ${siHtml('OB conv',x.c.obConv.toFixed(1)+'%')}
+      ${siHtml('Hours',x.r.hours)}
+    </div>`;
+  });
+  html+='</div>';
+
+  // Side-by-side comparison table
+  const metricKeys=['enrollments','pct','pace','hours','inbound','outbound','obDay','ibConv','obConv','soa'];
+  const metricLbls={enrollments:'Enrollments',pct:'Quota %',pace:'Pace/day',hours:'Hours',inbound:'Inbound',outbound:'Outbound',obDay:'OB/day',ibConv:'IB conv%',obConv:'OB conv%',soa:'Spd of ans'};
+
+  html+=`<div class="cmp-wrap"><div class="thead"><div class="thead-title">Side-by-side — ${mlbl(month)}</div></div><div class="tw"><table style="min-width:500px">
+    <thead><tr><th style="text-align:left">Metric</th>${sorted.filter(x=>x.r).map(x=>`<th style="color:${x.color}">${x.a.name.split(' ')[0]}</th>`).join('')}</tr></thead>
+    <tbody>`;
+
+  metricKeys.forEach(key=>{
+    const vals=sorted.filter(x=>x.r).map(x=>getMetricVal(x.r,key,x.quota));
+    const best=vals.length?key==='soa'?Math.min(...vals):Math.max(...vals):null;
+    html+=`<tr><td style="font-weight:600;color:var(--text-2);white-space:nowrap">${metricLbls[key]}</td>`;
+    sorted.filter(x=>x.r).forEach((x,i)=>{
+      const v=vals[i];const isBest=v===best&&best!==0;
+      html+=`<td style="${isBest?'font-weight:700;color:var(--coral)':''}">${fmtVal(key,v)}${isBest?' ★':''}</td>`;
+    });
+    html+='</tr>';
+  });
+
+  // Zone row
+  html+=`<tr><td style="font-weight:600;color:var(--text-2)">Zone</td>`;
+  sorted.filter(x=>x.r).forEach(x=>{
+    const z=x.zone||{label:'No quota',cls:'zone-none',dot:'#ccc'};
+    html+=`<td><span class="zone-badge ${z.cls}" style="font-size:10px"><span class="zdot" style="background:${z.dot}"></span>${z.label}</span></td>`;
+  });
+  html+=`</tr></tbody></table></div></div>`;
+  el.innerHTML=html;
+}
+
+/* ══════════════ GRAPH ══════════════ */
+function buildMetricChips(){
+  document.getElementById('metric-chips').innerHTML=METRICS.map(m=>
+    `<div class="mchip${m.key===activeMetric?' on':''}" onclick="setMetric('${m.key}',this)">${m.label}</div>`
+  ).join('');
+}
+function setMetric(key,el){
+  activeMetric=key;
+  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderGraph();
+}
+
+function buildAdvToggles(){
+  document.getElementById('adv-toggles').innerHTML=advisors.map((a,i)=>{
+    const col=ACOLS[i];
+    return`<div class="atoggle${activeAdvs[a.id]?'':' off'}" style="border-color:${col};color:${col};background:${activeAdvs[a.id]?col+'18':'transparent'}"
+      onclick="toggleAdv(${a.id},this,'${col}')">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col}"></div>${a.name.split(' ')[0]}
+    </div>`;
+  }).join('');
+}
+
+function toggleAdv(id,el,col){
+  activeAdvs[id]=!activeAdvs[id];
+  el.classList.toggle('off',!activeAdvs[id]);
+  el.style.background=activeAdvs[id]?col+'18':'transparent';
+  renderGraph();
+}
+
+function setGraphDefaultRange(){
+  const from=new Date(now.getFullYear(),now.getMonth()-5,1);
+  document.getElementById('graph-from').value=toMK(from);
+  document.getElementById('graph-to').value=toMK(now);
+}
+
+function monthsBetween(from,to){
+  const months=[];
+  const [fy,fm]=from.split('-').map(Number);
+  const [ty,tm]=to.split('-').map(Number);
+  let y=fy,m=fm;
+  while(y<ty||(y===ty&&m<=tm)){
+    months.push(`${y}-${String(m).padStart(2,'0')}`);
+    m++;if(m>12){m=1;y++;}
+  }
+  return months;
+}
+
+function renderGraph(){
+  const fromVal=document.getElementById('graph-from').value;
+  const toVal=document.getElementById('graph-to').value;
+  if(!fromVal||!toVal)return;
+  const months=monthsBetween(fromVal,toVal);
+  if(!months.length)return;
+
+  const metricMeta=METRICS.find(m=>m.key===activeMetric);
+  document.getElementById('graph-title').textContent=`${metricMeta?.label||activeMetric} over time`;
+
+  const labels=months.map(m=>{ const[y,mn]=m.split('-'); return MN[+mn-1].slice(0,3)+' '+y.slice(2); });
+
+  const datasets=advisors.filter(a=>activeAdvs[a.id]).map((a,i)=>{
+    const col=ACOLS[advisors.indexOf(a)];
+    const data=months.map(m=>{
+      const r=(kpiData[a.id]||[]).find(x=>x.month===m);
+      if(!r)return null;
+      const q=getQuota(a.id,m);
+      return parseFloat(getMetricVal(r,activeMetric,q).toFixed(2));
+    });
+    return{label:a.name,data,borderColor:col,backgroundColor:col+'15',
+      tension:.35,pointRadius:5,pointHoverRadius:8,pointBackgroundColor:col,
+      pointBorderColor:'#fff',pointBorderWidth:2,
+      borderWidth:2.5,spanGaps:false,fill:true};
+  });
+
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  const ctx=document.getElementById('line-chart').getContext('2d');
+  chartInst=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1A1A2E',titleColor:'#fff',bodyColor:'rgba(255,255,255,.8)',
+          padding:12,cornerRadius:8,borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+          callbacks:{
+            label:ctx=>{
+              const v=ctx.parsed.y;
+              if(v===null)return`${ctx.dataset.label}: no data`;
+              const disp=activeMetric.endsWith('Conv')||activeMetric==='pct'?v.toFixed(1)+'%':v;
+              return`  ${ctx.dataset.label}: ${disp}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'#F0EEE8'},ticks:{font:{size:11},color:'#A8A5B0'},border:{color:'#E8E5E0'}},
+        y:{grid:{color:'#F0EEE8'},ticks:{font:{size:11},color:'#A8A5B0',callback:v=>activeMetric.endsWith('Conv')||activeMetric==='pct'?v+'%':v},
+          border:{color:'#E8E5E0'},
+          title:{display:true,text:metricMeta?.label||'',font:{size:11},color:'#A8A5B0'}}
+      }
+    }
+  });
+
+  // Legend
+  document.getElementById('graph-legend').innerHTML=advisors.filter(a=>activeAdvs[a.id]).map((a,i)=>{
+    const col=ACOLS[advisors.indexOf(a)];
+    return`<div class="leg-item"><div class="leg-line" style="background:${col}"></div>${a.name}</div>`;
+  }).join('');
+}
+
+/* ══════════════ MONTH-END REPORT ══════════════ */
+function renderReport(){
+  const month=document.getElementById('rep-mon').value;
+  document.getElementById('rep-title').textContent='Month-End Performance Report';
+  document.getElementById('rep-sub').textContent=mlbl(month)+' — Enrollment Team';
+  document.getElementById('rep-generated').textContent='Generated '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const rows=advisors.map((a,i)=>{
+    const r=(kpiData[a.id]||[]).find(x=>x.month===month);
+    const quota=getQuota(a.id,month);
+    const c=r?calc(r,quota):null;
+    const zone=r?getZone(c.pct):null;
+    return{a,i,r,c,zone,quota,color:ACOLS[i]};
+  });
+
+  let html=`<table class="mer-table">
+    <thead><tr>
+      <th>Advisor</th><th>Quota</th><th>Enrolled</th><th>Days</th>
+      <th>Pace/day</th><th>Exp/day</th><th>Quota %</th>
+      <th>IB conv%</th><th>OB conv%</th><th>Zone</th><th>Recommendation</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach(x=>{
+    const z=x.zone||{label:'—',cls:'zone-none',dot:'#ccc'};
+    const rec=x.zone?
+      x.zone.cls==='zone-green'?'Keep doing great work — stay on track':
+      x.zone.cls==='zone-yellow'?'Schedule a supportive 1:1 — review pace and activity':
+      'Review performance plan — pattern continues':'No quota set — add quota to generate recommendation';
+
+    html+=`<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${x.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${initials(x.a.name)}</div>
+        <span>${x.a.name}</span>
+      </div></td>
+      <td>${x.quota||'—'}</td>
+      <td style="font-weight:700">${x.r?x.r.enrollments:'—'}</td>
+      <td>${x.r?x.r.days:'—'}</td>
+      <td style="font-weight:700">${x.c?x.c.pace.toFixed(2):'—'}</td>
+      <td>${x.c&&x.c.expDay>0?x.c.expDay.toFixed(2):'—'}</td>
+      <td style="font-weight:700;color:${x.zone?.color||'var(--text-3)'}">${x.c?.pct!==null&&x.c?.pct!==undefined?x.c.pct.toFixed(0)+'%':'—'}</td>
+      <td>${x.c?x.c.ibConv.toFixed(1)+'%':'—'}</td>
+      <td>${x.c?x.c.obConv.toFixed(1)+'%':'—'}</td>
+      <td><span class="zone-badge ${z.cls}" style="font-size:10px"><span class="zdot" style="background:${z.dot}"></span>${z.label}</span></td>
+      <td style="font-size:12px;color:var(--text-2)">${rec}</td>
+    </tr>`;
+
+    // Notes row
+    const noteKey=`${x.a.id}-${month}`;
+    if(!merNotes[noteKey]) merNotes[noteKey]='';
+    html+=`<tr style="background:#FAFAF9"><td colspan="11" style="padding:6px 12px 10px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Director notes for ${x.a.name.split(' ')[0]}</div>
+      <textarea class="mer-notes" placeholder="Add context, observations, or next steps…" oninput="merNotes['${noteKey}']=this.value">${merNotes[noteKey]}</textarea>
+    </td></tr>`;
+  });
+
+  html+='</tbody></table>';
+
+  // Zone key
+  html+=`<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em">Zone key</span>
+    <span class="zone-badge zone-green" style="font-size:11px"><span class="zdot" style="background:var(--green)"></span>On Track — pace ≥ ${zones.green}% of expected</span>
+    <span class="zone-badge zone-yellow" style="font-size:11px"><span class="zdot" style="background:var(--amber)"></span>Watch — pace ${zones.yellow}–${zones.green-1}% of expected</span>
+    <span class="zone-badge zone-red" style="font-size:11px"><span class="zdot" style="background:var(--red)"></span>Action needed — pace below ${zones.yellow}% of expected</span>
+    <span style="font-size:11px;color:var(--text-3)">Expected pace = quota ÷ working days in month</span>
+  </div>`;
+
+  document.getElementById('rep-content').innerHTML=html;
+}
+
+/* ══════════════ IMPORT RATES ══════════════ */
+function calcImpRate(){
+  const n=parseFloat(document.getElementById('imp-num').value);
+  const d=parseFloat(document.getElementById('imp-den').value);
+  if(!isNaN(n)&&!isNaN(d)&&d>0){computedRate=n/d*100;document.getElementById('imp-rate-disp').textContent=computedRate.toFixed(1)+'%';document.getElementById('imp-dir').value='';}
+  else{computedRate=null;document.getElementById('imp-rate-disp').textContent='—%';}
+}
+function useDirectRate(){
+  const v=parseFloat(document.getElementById('imp-dir').value);
+  if(!isNaN(v)){computedRate=v;document.getElementById('imp-rate-disp').textContent=v.toFixed(1)+'%';document.getElementById('imp-num').value='';document.getElementById('imp-den').value='';}
+  else{computedRate=null;document.getElementById('imp-rate-disp').textContent='—%';}
+}
+function saveImport(){
+  const lbl=document.getElementById('imp-lbl').value.trim();
+  const src=document.getElementById('imp-src').value.trim();
+  const aid=parseInt(document.getElementById('imp-adv').value);
+  const month=document.getElementById('imp-mon').value;
+  if(!lbl){alert('Please enter a metric label.');return;}
+  if(computedRate===null){alert('Please enter a rate.');return;}
+  const adv=advisors.find(a=>a.id===aid);
+  importedRates.unshift({id:nextImpId++,month,advisorId:aid,advisorName:adv?.name||'',label:lbl,source:src,rate:computedRate});
+  ['imp-lbl','imp-src','imp-num','imp-den','imp-dir'].forEach(id=>document.getElementById(id).value='');
+  computedRate=null;document.getElementById('imp-rate-disp').textContent='—%';
+  renderImpLog();
+}
+function delImport(id){importedRates=importedRates.filter(r=>r.id!==id);renderImpLog();}
+function renderImpLog(){
+  const log=document.getElementById('imp-log');
+  const body=document.getElementById('imp-log-body');
+  const cnt=document.getElementById('imp-count');
+  if(!importedRates.length){log.style.display='none';return;}
+  log.style.display='block';cnt.textContent=importedRates.length+' saved';
+  body.innerHTML=importedRates.map(r=>`
+    <div class="log-grid">
+      <div>${mlbl(r.month).replace(' ','&nbsp;')}</div>
+      <div style="font-weight:600">${r.advisorName.split(' ')[0]}</div>
+      <div style="color:var(--text-2)">${r.label}</div>
+      <div style="font-weight:700;color:var(--coral)">${r.rate.toFixed(1)}%</div>
+      <div style="color:var(--text-3);font-size:11px">${r.source||'—'}</div>
+      <div class="ldel" onclick="delImport(${r.id})">&#x2715;</div>
+    </div>`).join('');
+}
+
+/* ══════════════ ZONE MODAL ══════════════ */
+function openTierModal(){
+  document.getElementById('z-green').value=zones.green;
+  document.getElementById('z-yellow').value=zones.yellow;
+  document.getElementById('zone-modal').classList.add('open');
+}
+function closeZoneModal(){document.getElementById('zone-modal').classList.remove('open');}
+function saveZones(){
+  zones.green=parseFloat(document.getElementById('z-green').value)||zones.green;
+  zones.yellow=parseFloat(document.getElementById('z-yellow').value)||zones.yellow;
+  closeZoneModal();renderInd();
+  if(currentTab==='compare')renderCompare();
+  if(currentTab==='report')renderReport();
+}
+document.getElementById('zone-modal').addEventListener('click',e=>{if(e.target===document.getElementById('zone-modal'))closeZoneModal();});
+
+/* ══════════════ INIT ══════════════ */
+document.getElementById('today-date').textContent=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+loadFromSupabase();
+</script>
+</body>
+</html>
