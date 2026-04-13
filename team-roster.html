@@ -83,65 +83,64 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .toast.success { background: var(--green); }
 
 /* ── ROSTER GRID ── */
-.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 14px; }
-.member-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: box-shadow .15s, transform .12s; }
-.member-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+
+/* ── NAME CARD (compact) ── */
+.member-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 12px 14px; transition: border-color .15s, box-shadow .15s; position: relative; }
+.member-card:hover { border-color: #ccc; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.member-card.open-card { border-color: var(--coral); box-shadow: 0 0 0 2px var(--coral-light); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .member-card.l1 { border-left: 3px solid var(--green); }
 .member-card.l2 { border-left: 3px solid var(--amber); }
 .member-card.l3 { border-left: 3px solid var(--red); }
-.card-top { padding: 14px 16px 12px; display: flex; align-items: flex-start; gap: 12px; }
-.avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
-.member-name { font-size: 14px; font-weight: 700; color: var(--text); }
-.member-since { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-.status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 5px; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.card-text { flex: 1; min-width: 0; }
+.member-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member-role { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.card-chevron { color: var(--text-3); transition: transform .2s ease; flex-shrink: 0; }
+.member-card.open-card .card-chevron { transform: rotate(90deg); color: var(--coral); }
+
+/* ── STATUS BADGE ── */
+.status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 3px; }
 .sb-1 { background: var(--green-light); color: var(--green-text); border: 1px solid var(--green-border); }
 .sb-2 { background: var(--amber-light); color: var(--amber-text); border: 1px solid var(--amber-border); }
 .sb-3 { background: var(--red-light); color: var(--red-text); border: 1px solid var(--red-border); }
 .sb-none { background: #F5F5F5; color: #aaa; border: 1px solid #E5E5E5; }
-.sb-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.card-divider { border: none; border-top: 1px solid var(--border); }
-.card-info { padding: 10px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
-.ci-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
-.ci-val { font-size: 12px; color: var(--text); font-weight: 500; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-sched { padding: 10px 16px 14px; }
-.sched-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
-.day-pills { display: flex; gap: 3px; flex-wrap: wrap; }
-.day-pill { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: var(--coral-light); color: var(--coral-dark); border: 1px solid var(--coral-mid); }
-.day-pill.off { background: #F5F5F5; color: #ccc; border-color: #EBEBEB; }
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── DETAIL PANEL ── */
-.detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
-.detail-panel.l1 { border-top: 3px solid var(--green); }
-.detail-panel.l2 { border-top: 3px solid var(--amber); }
-.detail-panel.l3 { border-top: 3px solid var(--red); }
-.dp-head { padding: 18px 20px 14px; display: flex; align-items: flex-start; gap: 14px; }
-.dp-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
-.dp-name { font-size: 18px; font-weight: 700; color: var(--text); }
-.dp-sub { font-size: 12px; color: var(--text-2); margin-top: 3px; }
-.dp-actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
-.dp-body { border-top: 1px solid var(--border); padding: 14px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+/* ── INLINE EXPANDED DETAIL ── */
+.member-detail { display: none; background: var(--surface); border: 1px solid var(--coral); border-top: none; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); margin-top: 0; margin-bottom: 8px; overflow: hidden; }
+.member-detail.open { display: block; animation: slideOpen .16s ease; }
+@keyframes slideOpen { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }
+
+.dp-head { padding: 14px 16px 12px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid var(--border); }
+.dp-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.dp-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.dp-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.dp-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+.dp-body { padding: 12px 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-bottom: 1px solid var(--border); }
 .df .lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
-.df .val { font-size: 13px; color: var(--text); font-weight: 600; margin-top: 3px; }
-.dp-status { border-top: 1px solid var(--border); padding: 14px 20px; }
-.sdp-title { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
-.sdp-box { border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.65; }
+.df .val { font-size: 13px; color: var(--text); font-weight: 600; margin-top: 2px; word-break: break-all; }
+.dp-status { border-bottom: 1px solid var(--border); padding: 12px 16px; }
+.sdp-title { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.sdp-box { border-radius: 10px; padding: 11px 13px; font-size: 12px; line-height: 1.65; }
 .sdp-l1 { background: var(--green-light); border: 1px solid var(--green-border); }
 .sdp-l2 { background: var(--amber-light); border: 1px solid var(--amber-border); }
 .sdp-l3 { background: var(--red-light); border: 1px solid var(--red-border); }
-.sdp-section { font-size: 11px; font-weight: 700; color: var(--text-2); margin: 8px 0 4px; }
+.sdp-section { font-size: 11px; font-weight: 700; color: var(--text-2); margin: 7px 0 4px; }
 .sdp-section:first-child { margin-top: 0; }
-.sdp-row { display: flex; gap: 8px; margin-bottom: 3px; align-items: flex-start; font-size: 12.5px; color: var(--text); }
-.sdp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-.script-box { margin-top: 10px; padding: 10px 12px; background: rgba(0,0,0,.05); border-radius: 8px; font-size: 12px; color: var(--text-2); font-style: italic; line-height: 1.6; }
-.dp-sched { border-top: 1px solid var(--border); padding: 14px 20px; }
-.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
-.week-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.wday { font-size: 10px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-.wblock { width: 100%; min-height: 48px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 2px; }
+.sdp-row { display: flex; gap: 8px; margin-bottom: 3px; align-items: flex-start; font-size: 12px; color: var(--text); }
+.sdp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.script-box { margin-top: 8px; padding: 9px 11px; background: rgba(0,0,0,.04); border-radius: 8px; font-size: 11px; color: var(--text-2); font-style: italic; line-height: 1.6; }
+.dp-sched { padding: 12px 16px; }
+.sched-label-sm { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.week-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.wday { font-size: 9px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.wblock { width: 100%; min-height: 40px; border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 2px; }
 .wblock.on { background: var(--coral-light); border: 1px solid var(--coral-mid); }
 .wblock.off { background: #F5F5F5; border: 1px solid #EBEBEB; }
-.wh { font-size: 10px; font-weight: 700; color: var(--coral-dark); }
-.wt { font-size: 9px; color: #bbb; text-align: center; line-height: 1.4; }
+.wh { font-size: 9px; font-weight: 700; color: var(--coral-dark); }
+.wt { font-size: 8px; color: #bbb; text-align: center; line-height: 1.3; }
 
 /* ── MODAL ── */
 .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
@@ -188,13 +187,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .brand-text-main, .brand-text-sub, .nav-item span { display: none; }
   .nav-item { justify-content: center; padding: 10px; }
   .main { margin-left: 60px; }
-  .topbar { padding: 12px 16px; }
-  .page { padding: 16px; }
+  .topbar { padding: 10px 14px; gap: 8px; }
+  .topbar-title { font-size: 16px; }
+  .search-box { min-width: unset; flex: 1; }
+  .date-chip { display: none; }
+  .page { padding: 14px; }
+  .roster-grid { grid-template-columns: 1fr; gap: 0; }
+  .member-card { border-radius: 0; border-bottom: none; }
+  .member-card:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .member-card:last-child:not(.open-card) { border-radius: 0 0 var(--radius) var(--radius); border-bottom: 1px solid var(--border); }
+  .member-card.open-card { border-radius: 0; }
+  .member-detail { border-radius: 0; margin-bottom: 0; }
+  .member-detail.open { border-bottom: 1px solid var(--coral); }
   .dp-body { grid-template-columns: 1fr 1fr; }
-  .roster-grid { grid-template-columns: 1fr; }
+  .week-grid { gap: 3px; }
+  .wblock { min-height: 32px; }
+  .wt { display: none; }
   .frow { grid-template-columns: 1fr; }
   .status-opts { grid-template-columns: 1fr 1fr; }
   .shift-row { grid-template-columns: 38px 1fr 10px 1fr 28px; }
+  .filter-row { gap: 5px; }
+  .filter-chip { font-size: 11px; padding: 5px 10px; }
+  .page-header { margin-bottom: 14px; }
+  .page-title { font-size: 20px; }
+}
+@media(max-width:400px){
+  .dp-body { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .week-grid { grid-template-columns: repeat(7,1fr); gap: 2px; }
 }
 </style>
 </head>
@@ -268,7 +287,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="filter-chip fc-red" onclick="setFilter('3',this)"><div class="fcdot" style="background:var(--red)"></div>Performance Plan</div>
     </div>
 
-    <div class="detail-panel" id="detail-panel" style="display:none"></div>
     <div class="roster-grid" id="roster-grid">
       <div class="loading-state"><div class="spinner"></div> Loading team…</div>
     </div>
@@ -402,16 +420,19 @@ async function loadMembers() {
 }
 
 /* ══════════════ RENDER ══════════════ */
+let openMemberId = null;
+
 function setFilter(f, el) {
   activeFilter = f;
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  closeDetail();
+  openMemberId = null;
   renderRoster();
 }
 
 function filterSearch(val) {
   searchQuery = val.toLowerCase();
+  openMemberId = null;
   renderRoster();
 }
 
@@ -429,49 +450,37 @@ function renderRoster() {
     return;
   }
 
+  // Build card + optional inline detail for each member
   grid.innerHTML = list.map(m => {
     const si = STATUS_INFO[m.status] || STATUS_INFO['none'];
-    const wh = weeklyHrs(m);
-    const active = activeDays(m);
-    return `<div class="member-card ${si.cardCls}" onclick="openDetail('${m.id}')">
-      <div class="card-top">
-        <div class="avatar">${initials(m)}</div>
-        <div style="flex:1;min-width:0">
-          <div class="member-name">${m.first} ${m.last}</div>
-          <div class="member-since">${tenure(m)} on team · Since ${m.year}</div>
-          <div class="status-badge ${si.cls}"><div class="sb-dot" style="background:${si.dot}"></div>${si.label}</div>
-        </div>
+    const isOpen = m.id === openMemberId;
+    const cardHtml = `<div class="member-card ${si.cardCls}${isOpen?' open-card':''}" onclick="toggleMember('${m.id}')" id="card-${m.id}">
+      <div class="avatar">${initials(m)}</div>
+      <div class="card-text">
+        <div class="member-name">${m.first} ${m.last}</div>
+        <div class="status-badge ${si.cls}" style="margin-top:3px"><div class="sb-dot" style="background:${si.dot}"></div>${si.label}</div>
       </div>
-      <hr class="card-divider"/>
-      <div class="card-info">
-        <div><div class="ci-label">Hourly pay</div><div class="ci-val">$${(+m.pay).toFixed(2)}/hr</div></div>
-        <div><div class="ci-label">Weekly hours</div><div class="ci-val">${wh.toFixed(1)}h/wk</div></div>
-        <div><div class="ci-label">Email</div><div class="ci-val">${m.email||'—'}</div></div>
-        <div><div class="ci-label">Phone</div><div class="ci-val">${m.phone||'—'}</div></div>
-      </div>
-      <hr class="card-divider"/>
-      <div class="card-sched">
-        <div class="sched-label">Schedule · ${active.length} days · ${wh.toFixed(1)}h/wk</div>
-        <div class="day-pills">${DAYS.map((d,i) => `<span class="day-pill${active.includes(i)?'':' off'}">${d}</span>`).join('')}</div>
-        ${m.status_note ? `<div style="font-size:11px;color:var(--text-3);margin-top:7px;font-style:italic">${m.status_note}</div>` : ''}
-      </div>
+      <svg class="card-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4l4 4-4 4"/></svg>
     </div>`;
+    const detailHtml = isOpen ? buildDetailHtml(m, si) : `<div class="member-detail" id="detail-${m.id}"></div>`;
+    return cardHtml + detailHtml;
   }).join('');
+
+  // Open detail if one was open
+  if (openMemberId) {
+    const detailEl = document.getElementById(`detail-${openMemberId}`);
+    if (detailEl && !detailEl.classList.contains('open')) detailEl.classList.add('open');
+  }
 }
 
-/* ══════════════ DETAIL PANEL ══════════════ */
-function openDetail(id) {
-  const m = members.find(x => x.id === id);
-  if (!m) return;
-  const si = STATUS_INFO[m.status] || STATUS_INFO['none'];
+function buildDetailHtml(m, si) {
   const wh = weeklyHrs(m);
-
   const wCols = [0,1,2,3,4,5,6].map(i => {
     const d = m.schedule[i]; const on = d?.on;
     return `<div class="week-col"><div class="wday">${DAYS[i]}</div>
       <div class="wblock ${on?'on':'off'}">${on
-        ? `<div class="wh">${hrsFromShift(d.start,d.end).toFixed(1)}h</div><div class="wt">${fmtTime(d.start)}<br/>${fmtTime(d.end)}</div>`
-        : '<div class="wt">Off</div>'
+        ? `<div class="wh">${hrsFromShift(d.start,d.end).toFixed(1)}h</div><div class="wt">${fmtTime(d.start)}<br>${fmtTime(d.end)}</div>`
+        : ''
       }</div></div>`;
   }).join('');
 
@@ -485,49 +494,55 @@ function openDetail(id) {
         <div class="sdp-section">Triggers</div>${t}
         <div class="sdp-section">What to do</div>${a}
         ${si.script ? `<div class="script-box">${si.script}</div>` : ''}
-        ${m.status_note ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;color:var(--text-2)"><strong>Your note:</strong> ${m.status_note}</div>` : ''}
+        ${m.status_note ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);font-size:11px;color:var(--text-2)"><strong>Your note:</strong> ${m.status_note}</div>` : ''}
       </div>
     </div>`;
   }
 
-  const panel = document.getElementById('detail-panel');
-  panel.className = `detail-panel ${si.cardCls}`;
-  panel.innerHTML = `
+  return `<div class="member-detail open" id="detail-${m.id}">
     <div class="dp-head">
       <div class="dp-avatar">${initials(m)}</div>
       <div style="flex:1;min-width:0">
         <div class="dp-name">${m.first} ${m.last}</div>
         <div class="dp-sub">Since ${m.year} · ${tenure(m)} on enrollment team</div>
-        <div class="status-badge ${si.cls}" style="margin-top:6px"><div class="sb-dot" style="background:${si.dot}"></div>${si.label}</div>
       </div>
       <div class="dp-actions">
-        <button class="btn btn-sm" onclick="openEdit('${m.id}')">Edit</button>
-        <button class="btn btn-sm btn-ghost" onclick="closeDetail()">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg>
-        </button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();openEdit('${m.id}')">Edit</button>
       </div>
     </div>
     <div class="dp-body">
-      <div class="df"><div class="lbl">Email</div><div class="val" style="font-size:12px">${m.email||'—'}</div></div>
+      <div class="df"><div class="lbl">Email</div><div class="val" style="font-size:11px">${m.email||'—'}</div></div>
       <div class="df"><div class="lbl">Phone</div><div class="val">${m.phone||'—'}</div></div>
-      <div class="df"><div class="lbl">Hourly pay</div><div class="val">$${(+m.pay).toFixed(2)}/hr</div></div>
-      <div class="df"><div class="lbl">Weekly hours</div><div class="val">${wh.toFixed(1)} hrs</div></div>
+      <div class="df"><div class="lbl">Pay</div><div class="val">$${(+m.pay).toFixed(2)}/hr</div></div>
+      <div class="df"><div class="lbl">Hrs/week</div><div class="val">${wh.toFixed(1)}</div></div>
       <div class="df"><div class="lbl">Year started</div><div class="val">${m.year||'—'}</div></div>
       <div class="df"><div class="lbl">Est. weekly pay</div><div class="val">$${(wh*(+m.pay)).toFixed(2)}</div></div>
     </div>
     ${statusHtml}
     <div class="dp-sched">
-      <div class="sched-label" style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Weekly schedule — ${wh.toFixed(1)} hrs/week</div>
+      <div class="sched-label-sm">Weekly schedule — ${wh.toFixed(1)} hrs/week</div>
       <div class="week-grid">${wCols}</div>
-    </div>`;
-  panel.style.display = 'block';
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    </div>
+  </div>`;
 }
 
-function closeDetail() {
-  const p = document.getElementById('detail-panel');
-  p.style.display = 'none'; p.innerHTML = '';
+function toggleMember(id) {
+  if (openMemberId === id) {
+    openMemberId = null;
+  } else {
+    openMemberId = id;
+  }
+  renderRoster();
+  // Scroll card into view on mobile
+  if (openMemberId) {
+    setTimeout(() => {
+      const card = document.getElementById(`card-${id}`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
 }
+
+/* ══════════════ AFTER SAVE — refresh open member ══════════════ */
 
 /* ══════════════ MODAL ══════════════ */
 function pickStatus(val, el) {
@@ -646,7 +661,7 @@ async function saveMember() {
 
     showToast(editingId ? 'Member updated.' : 'Member added.', 'success');
     closeModal();
-    closeDetail();
+    openMemberId = null;
     await loadMembers();
 
   } catch (err) {
@@ -671,7 +686,7 @@ async function deleteMember() {
     if (error) throw error;
     showToast('Member deleted.', 'success');
     closeModal();
-    closeDetail();
+    openMemberId = null;
     await loadMembers();
   } catch (err) {
     showToast('Error deleting: ' + err.message, 'error');
