@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Team Roster — Enrollment Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --coral: #F07050; --coral-hover: #E8603E; --coral-light: #FEF0EB;
+  --coral-mid: #F5C4B3; --coral-dark: #7A3020;
+  --green: #22C55E; --green-light: #F0FDF4; --green-border: #BBF7D0; --green-text: #166534;
+  --amber: #F59E0B; --amber-light: #FFFBEB; --amber-border: #FDE68A; --amber-text: #92400E;
+  --red: #EF4444; --red-light: #FEF2F2; --red-border: #FECACA; --red-text: #991B1B;
+  --bg: #F4F4F6; --surface: #FFFFFF; --border: #EBEBEB;
+  --text: #1A1A2E; --text-2: #6B6B80; --text-3: #A0A0B0;
+  --radius: 12px; --sidebar-w: 240px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; font-size: 14px; }
+
+/* ── SIDEBAR ── */
+.sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; }
+.sidebar-brand { padding: 18px 16px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.brand-icon { width: 36px; height: 36px; background: var(--coral); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.brand-icon span { color: #fff; font-weight: 700; font-size: 13px; letter-spacing: -.5px; }
+.brand-text-main { font-size: 14px; font-weight: 700; color: var(--text); }
+.brand-text-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.sidebar-nav { padding: 10px; flex: 1; overflow-y: auto; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer; color: var(--text-2); font-size: 13.5px; font-weight: 500; margin-bottom: 2px; transition: background .12s, color .12s; user-select: none; text-decoration: none; }
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: var(--coral); color: #fff; font-weight: 600; }
+.nav-item.active svg { opacity: 1; }
+.nav-item svg { width: 17px; height: 17px; flex-shrink: 0; opacity: .55; }
+.sidebar-footer { padding: 12px 10px; border-top: 1px solid var(--border); }
+.nav-item.logout { color: var(--coral); }
+.nav-item.logout svg { opacity: 1; color: var(--coral); }
+.nav-item.logout:hover { background: var(--coral-light); }
+
+/* ── MAIN ── */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 22px; font-weight: 700; color: var(--text); flex: 1; }
+.search-box { display: flex; align-items: center; gap: 7px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text-3); font-size: 13px; min-width: 180px; }
+.search-box input { border: none; background: transparent; font-size: 13px; color: var(--text); outline: none; font-family: inherit; width: 100%; }
+.search-box input::placeholder { color: var(--text-3); }
+.date-chip { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 13px; color: var(--text); background: var(--surface); white-space: nowrap; }
+.date-chip svg { color: var(--coral); }
+
+/* ── PAGE ── */
+.page { padding: 28px; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.page-title { font-size: 26px; font-weight: 700; color: var(--text); }
+.page-sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; transition: background .12s; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--coral); color: #fff; border-color: var(--coral); }
+.btn-primary:hover { background: var(--coral-hover); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--bg); }
+.btn-danger { color: var(--red-text); border-color: var(--red-border); background: #fff; }
+
+/* ── FILTER CHIPS ── */
+.filter-row { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-chip { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); transition: all .12s; display: flex; align-items: center; gap: 5px; }
+.filter-chip:hover { border-color: #bbb; }
+.filter-chip.active { background: var(--coral); border-color: var(--coral); color: #fff; }
+.filter-chip.fc-green.active { background: var(--green-text); border-color: var(--green-text); }
+.filter-chip.fc-amber.active { background: #B45309; border-color: #B45309; }
+.filter-chip.fc-red.active { background: #DC2626; border-color: #DC2626; }
+.fcdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── LOADING / TOAST ── */
+.loading-state { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 4rem; color: var(--text-3); font-size: 13px; grid-column: 1/-1; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--coral); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.toast.error { background: var(--red); }
+.toast.success { background: var(--green); }
+
+/* ── ROSTER GRID ── */
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 14px; }
+.member-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: box-shadow .15s, transform .12s; }
+.member-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.member-card.l1 { border-left: 3px solid var(--green); }
+.member-card.l2 { border-left: 3px solid var(--amber); }
+.member-card.l3 { border-left: 3px solid var(--red); }
+.card-top { padding: 14px 16px 12px; display: flex; align-items: flex-start; gap: 12px; }
+.avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.member-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.member-since { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 5px; }
+.sb-1 { background: var(--green-light); color: var(--green-text); border: 1px solid var(--green-border); }
+.sb-2 { background: var(--amber-light); color: var(--amber-text); border: 1px solid var(--amber-border); }
+.sb-3 { background: var(--red-light); color: var(--red-text); border: 1px solid var(--red-border); }
+.sb-none { background: #F5F5F5; color: #aaa; border: 1px solid #E5E5E5; }
+.sb-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.card-divider { border: none; border-top: 1px solid var(--border); }
+.card-info { padding: 10px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.ci-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+.ci-val { font-size: 12px; color: var(--text); font-weight: 500; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-sched { padding: 10px 16px 14px; }
+.sched-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.day-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+.day-pill { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: var(--coral-light); color: var(--coral-dark); border: 1px solid var(--coral-mid); }
+.day-pill.off { background: #F5F5F5; color: #ccc; border-color: #EBEBEB; }
+
+/* ── DETAIL PANEL ── */
+.detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+.detail-panel.l1 { border-top: 3px solid var(--green); }
+.detail-panel.l2 { border-top: 3px solid var(--amber); }
+.detail-panel.l3 { border-top: 3px solid var(--red); }
+.dp-head { padding: 18px 20px 14px; display: flex; align-items: flex-start; gap: 14px; }
+.dp-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.dp-name { font-size: 18px; font-weight: 700; color: var(--text); }
+.dp-sub { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+.dp-actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+.dp-body { border-top: 1px solid var(--border); padding: 14px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.df .lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+.df .val { font-size: 13px; color: var(--text); font-weight: 600; margin-top: 3px; }
+.dp-status { border-top: 1px solid var(--border); padding: 14px 20px; }
+.sdp-title { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.sdp-box { border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.65; }
+.sdp-l1 { background: var(--green-light); border: 1px solid var(--green-border); }
+.sdp-l2 { background: var(--amber-light); border: 1px solid var(--amber-border); }
+.sdp-l3 { background: var(--red-light); border: 1px solid var(--red-border); }
+.sdp-section { font-size: 11px; font-weight: 700; color: var(--text-2); margin: 8px 0 4px; }
+.sdp-section:first-child { margin-top: 0; }
+.sdp-row { display: flex; gap: 8px; margin-bottom: 3px; align-items: flex-start; font-size: 12.5px; color: var(--text); }
+.sdp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.script-box { margin-top: 10px; padding: 10px 12px; background: rgba(0,0,0,.05); border-radius: 8px; font-size: 12px; color: var(--text-2); font-style: italic; line-height: 1.6; }
+.dp-sched { border-top: 1px solid var(--border); padding: 14px 20px; }
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
+.week-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wday { font-size: 10px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.wblock { width: 100%; min-height: 48px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 2px; }
+.wblock.on { background: var(--coral-light); border: 1px solid var(--coral-mid); }
+.wblock.off { background: #F5F5F5; border: 1px solid #EBEBEB; }
+.wh { font-size: 10px; font-weight: 700; color: var(--coral-dark); }
+.wt { font-size: 9px; color: #bbb; text-align: center; line-height: 1.4; }
+
+/* ── MODAL ── */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--surface); border-radius: 16px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal-head h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+.modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--text-2); font-family: inherit; line-height: 1; }
+.modal-close:hover { background: var(--bg); }
+.fsec { margin-bottom: 16px; }
+.fsec-title { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { margin-bottom: 10px; }
+.field label { font-size: 12px; color: var(--text-2); display: block; margin-bottom: 4px; font-weight: 500; }
+.field input, .field select, .field textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; font-family: inherit; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--coral); background: #fff; }
+.status-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.sopt { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all .12s; background: var(--bg); }
+.sopt:hover { border-color: #aaa; background: var(--surface); }
+.sopt.selected { border-width: 2px; background: var(--surface); }
+.sopt.sel-none.selected { border-color: #aaa; }
+.sopt.sel-1.selected { border-color: var(--green); background: var(--green-light); }
+.sopt.sel-2.selected { border-color: var(--amber); background: var(--amber-light); }
+.sopt.sel-3.selected { border-color: var(--red); background: var(--red-light); }
+.sopt-icon-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.sopt-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sopt-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.sopt-desc { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.days-selector { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.day-toggle { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; justify-content: center; font-family: inherit; transition: all .12s; }
+.day-toggle.on { background: var(--coral); border-color: var(--coral); color: #fff; }
+.day-toggle:hover:not(.on) { border-color: var(--coral); color: var(--coral); }
+.shift-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.shift-row { display: grid; grid-template-columns: 42px 1fr 14px 1fr 34px; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+.shift-row input[type=time] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; font-size: 12px; background: var(--bg); color: var(--text); font-family: inherit; width: 100%; }
+.shift-row input[type=time]:focus { border-color: var(--coral); outline: none; background: #fff; }
+.btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.saving-indicator { font-size: 12px; color: var(--text-3); display: none; align-items: center; gap: 6px; }
+.saving-indicator.show { display: flex; }
+
+/* ── MOBILE ── */
+@media(max-width:700px){
+  .sidebar { width: 60px; }
+  .brand-text-main, .brand-text-sub, .nav-item span { display: none; }
+  .nav-item { justify-content: center; padding: 10px; }
+  .main { margin-left: 60px; }
+  .topbar { padding: 12px 16px; }
+  .page { padding: 16px; }
+  .dp-body { grid-template-columns: 1fr 1fr; }
+  .roster-grid { grid-template-columns: 1fr; }
+  .frow { grid-template-columns: 1fr; }
+  .status-opts { grid-template-columns: 1fr 1fr; }
+  .shift-row { grid-template-columns: 38px 1fr 10px 1fr 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><span>EH</span></div>
+    <div>
+      <div class="brand-text-main">Enrollment Hub</div>
+      <div class="brand-text-sub">Director Panel</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="team-roster.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/><circle cx="16" cy="7" r="2.5"/><path d="M19 18c0-2.5-1.5-4.5-3.5-5.2"/></svg>
+      <span>Team Roster</span>
+    </a>
+    <a class="nav-item" href="reports.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 13l2.5-3.5 2.5 2.5L15 8"/></svg>
+      <span>Reports</span>
+    </a>
+    <a class="nav-item" href="meetings.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M7 2v4M13 2v4M3 9h14"/></svg>
+      <span>Meetings</span>
+    </a>
+    <a class="nav-item" href="notes.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="12" height="16" rx="2"/><path d="M7 7h6M7 11h6M7 15h3"/></svg>
+      <span>Notes</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="nav-item logout">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M9 14l4-4-4-4M13 10H3"/></svg>
+      <span>Log out</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">Team Roster</div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
+      <input type="text" id="search-input" placeholder="Search members…" oninput="filterSearch(this.value)"/>
+    </div>
+    <div class="date-chip">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1.5v3M11 1.5v3M2 7h12"/></svg>
+      <span id="today-date"></span>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Team Roster</div>
+        <div class="page-sub">Manage advisor profiles, schedules, and performance status</div>
+      </div>
+      <button class="btn btn-primary" onclick="openAdd()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        Add member
+      </button>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-chip active" onclick="setFilter('all',this)">All members</div>
+      <div class="filter-chip fc-green" onclick="setFilter('1',this)"><div class="fcdot" style="background:var(--green)"></div>On Track</div>
+      <div class="filter-chip fc-amber" onclick="setFilter('2',this)"><div class="fcdot" style="background:var(--amber)"></div>Coaching Zone</div>
+      <div class="filter-chip fc-red" onclick="setFilter('3',this)"><div class="fcdot" style="background:var(--red)"></div>Performance Plan</div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel" style="display:none"></div>
+    <div class="roster-grid" id="roster-grid">
+      <div class="loading-state"><div class="spinner"></div> Loading team…</div>
+    </div>
+  </div>
+</main>
+
+<!-- MEMBER MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+<div class="modal">
+  <div class="modal-head">
+    <h3 id="modal-heading">Add team member</h3>
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+  </div>
+  <div class="fsec">
+    <div class="fsec-title">Personal info</div>
+    <div class="frow">
+      <div class="field"><label>First name</label><input type="text" id="f-first" placeholder="Jordan"/></div>
+      <div class="field"><label>Last name</label><input type="text" id="f-last" placeholder="Lee"/></div>
+    </div>
+    <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="jordan@studio.com"/></div>
+    <div class="field"><label>Personal phone</label><input type="tel" id="f-phone" placeholder="(801) 555-0100"/></div>
+  </div>
+  <div class="fsec">
+    <div class="fsec-title">Employment</div>
+    <div class="frow">
+      <div class="field"><label>Hourly pay ($)</label><input type="number" id="f-pay" step="0.25" min="0" placeholder="18.00"/></div>
+      <div class="field"><label>Year joined enrollment team</label><input type="number" id="f-year" min="2000" max="2099"/></div>
+    </div>
+  </div>
+  <div class="fsec">
+    <div class="fsec-title">Performance status</div>
+    <div class="status-opts">
+      <div class="sopt" data-val="none" onclick="pickStatus('none',this)"><div class="sopt-icon-row"><div class="sopt-dot" style="background:#ccc"></div><span class="sopt-name">Not set</span></div><div class="sopt-desc">No status assigned</div></div>
+      <div class="sopt" data-val="1" onclick="pickStatus('1',this)"><div class="sopt-icon-row"><div class="sopt-dot" style="background:var(--green)"></div><span class="sopt-name">On Track</span></div><div class="sopt-desc">Hitting pace, strong effort</div></div>
+      <div class="sopt" data-val="2" onclick="pickStatus('2',this)"><div class="sopt-icon-row"><div class="sopt-dot" style="background:var(--amber)"></div><span class="sopt-name">Coaching Zone</span></div><div class="sopt-desc">Under pace 1–2 weeks</div></div>
+      <div class="sopt" data-val="3" onclick="pickStatus('3',this)"><div class="sopt-icon-row"><div class="sopt-dot" style="background:var(--red)"></div><span class="sopt-name">Performance Plan</span></div><div class="sopt-desc">No improvement, low effort</div></div>
+    </div>
+    <div class="field"><label>Status note (optional)</label><input type="text" id="f-status-note" placeholder="e.g. Started coaching zone Apr 7"/></div>
+  </div>
+  <div class="fsec">
+    <div class="fsec-title">Weekly schedule</div>
+    <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">Select working days, then set start and end time for each.</p>
+    <div class="days-selector" id="days-selector"></div>
+    <div class="shift-rows" id="shift-rows"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-danger" id="btn-delete" onclick="deleteMember()" style="display:none;margin-right:auto">Delete member</button>
+    <div class="saving-indicator" id="saving-indicator">
+      <div class="spinner" style="width:14px;height:14px;border-width:1.5px"></div>
+      Saving…
+    </div>
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="btn-save" onclick="saveMember()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ SUPABASE ══════════════ */
+const SUPABASE_URL = 'https://uwsgychdjgszetkmtths.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2d5Y2hkamdzemV0a210dGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDQ5MTEsImV4cCI6MjA5MTY4MDkxMX0.8l0HEVlMiATqGWQW705W-_Kz5G7zQnq8OQ17IgeRs20';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ══════════════ CONSTANTS ══════════════ */
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+const STATUS_INFO = {
+  '1': { label:'On Track',        cls:'sb-1', cardCls:'l1', boxCls:'sdp-l1', dot:'#22C55E',
+    triggers:['Hitting pace','Strong effort and improving'],
+    actions:['Recognition and small rewards','Keep them motivated','Celebrate wins with the team'], script:null },
+  '2': { label:'Coaching Zone',   cls:'sb-2', cardCls:'l2', boxCls:'sdp-l2', dot:'#F59E0B',
+    triggers:['Below pace for ~1–2 weeks','Low conversion rates','Inconsistent activity'],
+    actions:['1:1 conversation — supportive, not scary','Diagnose: low activity = behavior / good activity + low results = skill','Set 1–2 clear focus goals — not 10 things'],
+    script:'"Hey, I noticed you\'re a bit under pace right now. Let\'s look at what\'s going on and get you back on track."' },
+  '3': { label:'Performance Plan', cls:'sb-3', cardCls:'l3', boxCls:'sdp-l3', dot:'#EF4444',
+    triggers:['2–3+ weeks in coaching zone with no improvement','Low effort — this part matters'],
+    actions:['Formal performance plan — serious but fair','Document all conversations and goals','Set clear timeline with specific expectations'], script:null },
+  'none': { label:'No status', cls:'sb-none', cardCls:'', boxCls:'', dot:'#ccc', triggers:[], actions:[], script:null }
+};
+
+/* ══════════════ STATE ══════════════ */
+let members = [];           // flat member objects with .schedule = {0..6: {on,start,end}}
+let activeFilter = 'all';
+let searchQuery = '';
+let editingId = null;       // supabase UUID of member being edited
+let selectedDays = {};
+let selectedStatus = 'none';
+
+/* ══════════════ HELPERS ══════════════ */
+const initials = m => (m.first[0] + m.last[0]).toUpperCase();
+const tenure   = m => { const y = new Date().getFullYear() - m.year; return y===0?'First year':y===1?'1 yr':`${y} yrs`; };
+const fmtTime  = t => { if(!t) return ''; const [h,mn] = t.split(':'); const hr=+h; return `${hr>12?hr-12:hr||12}:${mn}${hr>=12?'pm':'am'}`; };
+const hrsFromShift = (s,e) => { if(!s||!e) return 0; const [sh,sm]=s.split(':').map(Number); const [eh,em]=e.split(':').map(Number); return Math.max(0,((eh*60+em)-(sh*60+sm))/60); };
+const weeklyHrs = m => Object.values(m.schedule||{}).reduce((t,d) => t+(d.on?hrsFromShift(d.start,d.end):0), 0);
+const activeDays = m => [0,1,2,3,4,5,6].filter(i => m.schedule?.[i]?.on);
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ══════════════ LOAD FROM SUPABASE ══════════════ */
+async function loadMembers() {
+  document.getElementById('roster-grid').innerHTML =
+    '<div class="loading-state"><div class="spinner"></div> Loading team…</div>';
+
+  const { data: membersData, error: mErr } = await db.from('members').select('*').order('first');
+  if (mErr) { showToast('Error loading members: ' + mErr.message, 'error'); return; }
+
+  const { data: schedData, error: sErr } = await db.from('schedules').select('*');
+  if (sErr) { showToast('Error loading schedules: ' + sErr.message, 'error'); return; }
+
+  // Attach schedules to members
+  members = membersData.map(m => {
+    const schedule = {};
+    for (let i = 0; i < 7; i++) schedule[i] = { on: false, start: '09:00', end: '17:00' };
+    (schedData || []).filter(s => s.member_id === m.id).forEach(s => {
+      schedule[s.day_of_week] = { on: s.is_on, start: s.start_time || '09:00', end: s.end_time || '17:00' };
+    });
+    return { ...m, schedule };
+  });
+
+  renderRoster();
+}
+
+/* ══════════════ RENDER ══════════════ */
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  closeDetail();
+  renderRoster();
+}
+
+function filterSearch(val) {
+  searchQuery = val.toLowerCase();
+  renderRoster();
+}
+
+function renderRoster() {
+  let list = members;
+  if (activeFilter !== 'all') list = list.filter(m => m.status === activeFilter);
+  if (searchQuery) list = list.filter(m =>
+    `${m.first} ${m.last}`.toLowerCase().includes(searchQuery) ||
+    (m.email||'').toLowerCase().includes(searchQuery)
+  );
+
+  const grid = document.getElementById('roster-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-3);font-size:13px">${members.length ? 'No members match this filter.' : 'No team members yet. Add your first one.'}</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(m => {
+    const si = STATUS_INFO[m.status] || STATUS_INFO['none'];
+    const wh = weeklyHrs(m);
+    const active = activeDays(m);
+    return `<div class="member-card ${si.cardCls}" onclick="openDetail('${m.id}')">
+      <div class="card-top">
+        <div class="avatar">${initials(m)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="member-name">${m.first} ${m.last}</div>
+          <div class="member-since">${tenure(m)} on team · Since ${m.year}</div>
+          <div class="status-badge ${si.cls}"><div class="sb-dot" style="background:${si.dot}"></div>${si.label}</div>
+        </div>
+      </div>
+      <hr class="card-divider"/>
+      <div class="card-info">
+        <div><div class="ci-label">Hourly pay</div><div class="ci-val">$${(+m.pay).toFixed(2)}/hr</div></div>
+        <div><div class="ci-label">Weekly hours</div><div class="ci-val">${wh.toFixed(1)}h/wk</div></div>
+        <div><div class="ci-label">Email</div><div class="ci-val">${m.email||'—'}</div></div>
+        <div><div class="ci-label">Phone</div><div class="ci-val">${m.phone||'—'}</div></div>
+      </div>
+      <hr class="card-divider"/>
+      <div class="card-sched">
+        <div class="sched-label">Schedule · ${active.length} days · ${wh.toFixed(1)}h/wk</div>
+        <div class="day-pills">${DAYS.map((d,i) => `<span class="day-pill${active.includes(i)?'':' off'}">${d}</span>`).join('')}</div>
+        ${m.status_note ? `<div style="font-size:11px;color:var(--text-3);margin-top:7px;font-style:italic">${m.status_note}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════ DETAIL PANEL ══════════════ */
+function openDetail(id) {
+  const m = members.find(x => x.id === id);
+  if (!m) return;
+  const si = STATUS_INFO[m.status] || STATUS_INFO['none'];
+  const wh = weeklyHrs(m);
+
+  const wCols = [0,1,2,3,4,5,6].map(i => {
+    const d = m.schedule[i]; const on = d?.on;
+    return `<div class="week-col"><div class="wday">${DAYS[i]}</div>
+      <div class="wblock ${on?'on':'off'}">${on
+        ? `<div class="wh">${hrsFromShift(d.start,d.end).toFixed(1)}h</div><div class="wt">${fmtTime(d.start)}<br/>${fmtTime(d.end)}</div>`
+        : '<div class="wt">Off</div>'
+      }</div></div>`;
+  }).join('');
+
+  let statusHtml = '';
+  if (m.status && m.status !== 'none') {
+    const t = si.triggers.map(x => `<div class="sdp-row"><div class="sdp-dot" style="background:${si.dot}"></div><span>${x}</span></div>`).join('');
+    const a = si.actions.map(x => `<div class="sdp-row"><div class="sdp-dot" style="background:#aaa"></div><span>${x}</span></div>`).join('');
+    statusHtml = `<div class="dp-status">
+      <div class="sdp-title">${si.label} — director guidance</div>
+      <div class="sdp-box ${si.boxCls}">
+        <div class="sdp-section">Triggers</div>${t}
+        <div class="sdp-section">What to do</div>${a}
+        ${si.script ? `<div class="script-box">${si.script}</div>` : ''}
+        ${m.status_note ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;color:var(--text-2)"><strong>Your note:</strong> ${m.status_note}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  const panel = document.getElementById('detail-panel');
+  panel.className = `detail-panel ${si.cardCls}`;
+  panel.innerHTML = `
+    <div class="dp-head">
+      <div class="dp-avatar">${initials(m)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="dp-name">${m.first} ${m.last}</div>
+        <div class="dp-sub">Since ${m.year} · ${tenure(m)} on enrollment team</div>
+        <div class="status-badge ${si.cls}" style="margin-top:6px"><div class="sb-dot" style="background:${si.dot}"></div>${si.label}</div>
+      </div>
+      <div class="dp-actions">
+        <button class="btn btn-sm" onclick="openEdit('${m.id}')">Edit</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeDetail()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 2l8 8M10 2l-8 8"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="dp-body">
+      <div class="df"><div class="lbl">Email</div><div class="val" style="font-size:12px">${m.email||'—'}</div></div>
+      <div class="df"><div class="lbl">Phone</div><div class="val">${m.phone||'—'}</div></div>
+      <div class="df"><div class="lbl">Hourly pay</div><div class="val">$${(+m.pay).toFixed(2)}/hr</div></div>
+      <div class="df"><div class="lbl">Weekly hours</div><div class="val">${wh.toFixed(1)} hrs</div></div>
+      <div class="df"><div class="lbl">Year started</div><div class="val">${m.year||'—'}</div></div>
+      <div class="df"><div class="lbl">Est. weekly pay</div><div class="val">$${(wh*(+m.pay)).toFixed(2)}</div></div>
+    </div>
+    ${statusHtml}
+    <div class="dp-sched">
+      <div class="sched-label" style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Weekly schedule — ${wh.toFixed(1)} hrs/week</div>
+      <div class="week-grid">${wCols}</div>
+    </div>`;
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDetail() {
+  const p = document.getElementById('detail-panel');
+  p.style.display = 'none'; p.innerHTML = '';
+}
+
+/* ══════════════ MODAL ══════════════ */
+function pickStatus(val, el) {
+  selectedStatus = val;
+  document.querySelectorAll('.sopt').forEach(o => o.classList.remove('selected','sel-1','sel-2','sel-3','sel-none'));
+  el.classList.add('selected', `sel-${val}`);
+}
+
+function buildDaysSelector(schedule) {
+  selectedDays = {};
+  for (let i = 0; i < 7; i++) selectedDays[i] = schedule?.[i] ? { ...schedule[i] } : { on: false, start: '09:00', end: '17:00' };
+  renderDaysUI();
+}
+
+function renderDaysUI() {
+  document.getElementById('days-selector').innerHTML = DAYS.map((d,i) =>
+    `<div class="day-toggle${selectedDays[i].on?' on':''}" onclick="toggleDay(${i})">${d}</div>`
+  ).join('');
+  renderShiftRows();
+}
+
+function toggleDay(i) { selectedDays[i].on = !selectedDays[i].on; renderDaysUI(); }
+
+function renderShiftRows() {
+  const active = [0,1,2,3,4,5,6].filter(i => selectedDays[i].on);
+  document.getElementById('shift-rows').innerHTML = active.length ? active.map(i => `
+    <div class="shift-row">
+      <span style="font-size:12px;font-weight:600;color:var(--text)">${DAY_FULL[i].slice(0,3)}</span>
+      <input type="time" value="${selectedDays[i].start||'09:00'}" onchange="selectedDays[${i}].start=this.value"/>
+      <span style="text-align:center;color:#ccc">–</span>
+      <input type="time" value="${selectedDays[i].end||'17:00'}" onchange="selectedDays[${i}].end=this.value"/>
+      <span style="font-size:11px;color:var(--text-3)">${hrsFromShift(selectedDays[i].start,selectedDays[i].end).toFixed(1)}h</span>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--text-3);padding:3px 0">No days selected.</div>';
+}
+
+function openAdd() {
+  editingId = null; selectedStatus = 'none';
+  document.getElementById('modal-heading').textContent = 'Add team member';
+  document.getElementById('btn-delete').style.display = 'none';
+  ['f-first','f-last','f-email','f-phone','f-status-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-pay').value = '';
+  document.getElementById('f-year').value = new Date().getFullYear();
+  document.querySelectorAll('.sopt').forEach(o => o.classList.remove('selected','sel-1','sel-2','sel-3','sel-none'));
+  document.querySelector('.sopt[data-val="none"]').classList.add('selected','sel-none');
+  buildDaysSelector(null);
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function openEdit(id) {
+  const m = members.find(x => x.id === id); if (!m) return;
+  editingId = id; selectedStatus = m.status || 'none';
+  document.getElementById('modal-heading').textContent = 'Edit team member';
+  document.getElementById('btn-delete').style.display = 'block';
+  document.getElementById('f-first').value = m.first;
+  document.getElementById('f-last').value = m.last;
+  document.getElementById('f-email').value = m.email || '';
+  document.getElementById('f-phone').value = m.phone || '';
+  document.getElementById('f-pay').value = m.pay || '';
+  document.getElementById('f-year').value = m.year || new Date().getFullYear();
+  document.getElementById('f-status-note').value = m.status_note || '';
+  document.querySelectorAll('.sopt').forEach(o => o.classList.remove('selected','sel-1','sel-2','sel-3','sel-none'));
+  const sel = document.querySelector(`.sopt[data-val="${selectedStatus}"]`);
+  if (sel) sel.classList.add('selected', `sel-${selectedStatus}`);
+  buildDaysSelector(m.schedule);
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); }
+
+async function saveMember() {
+  const first = document.getElementById('f-first').value.trim();
+  const last  = document.getElementById('f-last').value.trim();
+  if (!first || !last) { alert('First and last name required.'); return; }
+
+  const btn = document.getElementById('btn-save');
+  const indicator = document.getElementById('saving-indicator');
+  btn.disabled = true;
+  indicator.classList.add('show');
+
+  const memberData = {
+    first, last,
+    email:       document.getElementById('f-email').value.trim() || null,
+    phone:       document.getElementById('f-phone').value.trim() || null,
+    pay:         parseFloat(document.getElementById('f-pay').value) || 0,
+    year:        parseInt(document.getElementById('f-year').value) || new Date().getFullYear(),
+    status:      selectedStatus,
+    status_note: document.getElementById('f-status-note').value.trim() || null,
+  };
+
+  try {
+    let memberId = editingId;
+
+    if (editingId) {
+      // UPDATE member
+      const { error } = await db.from('members').update(memberData).eq('id', editingId);
+      if (error) throw error;
+    } else {
+      // INSERT member
+      const { data, error } = await db.from('members').insert(memberData).select().single();
+      if (error) throw error;
+      memberId = data.id;
+    }
+
+    // DELETE existing schedule rows for this member, then re-insert
+    await db.from('schedules').delete().eq('member_id', memberId);
+
+    const schedRows = [0,1,2,3,4,5,6].map(i => ({
+      member_id:   memberId,
+      day_of_week: i,
+      is_on:       selectedDays[i]?.on || false,
+      start_time:  selectedDays[i]?.start || '09:00',
+      end_time:    selectedDays[i]?.end   || '17:00',
+    }));
+    const { error: sErr } = await db.from('schedules').insert(schedRows);
+    if (sErr) throw sErr;
+
+    showToast(editingId ? 'Member updated.' : 'Member added.', 'success');
+    closeModal();
+    closeDetail();
+    await loadMembers();
+
+  } catch (err) {
+    showToast('Error saving: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    indicator.classList.remove('show');
+  }
+}
+
+async function deleteMember() {
+  if (!editingId) return;
+  const m = members.find(x => x.id === editingId);
+  if (!confirm(`Delete ${m?.first} ${m?.last}? This cannot be undone.`)) return;
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+
+  try {
+    // Schedules cascade-delete via FK, so just delete the member
+    const { error } = await db.from('members').delete().eq('id', editingId);
+    if (error) throw error;
+    showToast('Member deleted.', 'success');
+    closeModal();
+    closeDetail();
+    await loadMembers();
+  } catch (err) {
+    showToast('Error deleting: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ══════════════ INIT ══════════════ */
+document.getElementById('modal-backdrop').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-backdrop')) closeModal();
+});
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+
+loadMembers();
+</script>
+</body>
+</html>
