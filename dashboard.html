@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — Enrollment Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --coral:#F07050;--coral-h:#E05838;--coral-light:#FEF0EB;--coral-mid:#F5C4B3;--coral-dark:#7A3020;
+  --green:#16A34A;--green-light:#F0FDF4;--green-border:#86EFAC;--green-text:#166534;
+  --amber:#D97706;--amber-light:#FFFBEB;--amber-border:#FDE68A;--amber-text:#92400E;
+  --red:#DC2626;--red-light:#FEF2F2;--red-border:#FECACA;--red-text:#991B1B;
+  --blue:#3B82F6;--purple:#8B5CF6;--teal:#0D9488;
+  --bg:#F4F4F6;--surface:#fff;--border:#E8E5E0;
+  --text:#1A1A2E;--text-2:#6B6B80;--text-3:#A8A5B0;
+  --r:12px;--sidebar-w:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.sidebar-brand{padding:18px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.brand-icon{width:36px;height:36px;background:var(--coral);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-icon span{color:#fff;font-weight:700;font-size:13px;letter-spacing:-.5px}
+.brand-name{font-size:14px;font-weight:700;color:var(--text)}
+.brand-sub{font-size:11px;color:var(--text-3);margin-top:1px}
+.sidebar-nav{padding:10px;flex:1;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--text-2);font-size:13.5px;font-weight:500;margin-bottom:2px;transition:background .12s,color .12s;user-select:none;text-decoration:none}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--coral);color:#fff;font-weight:600}
+.nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.55}
+.nav-item.active svg,.nav-item.logout svg{opacity:1}
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border)}
+.nav-item.logout{color:var(--coral)}
+.nav-item.logout:hover{background:var(--coral-light)}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);flex:1;min-width:0}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:20px;font-weight:700;color:var(--text);flex:1}
+.date-chip{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--text-2);white-space:nowrap}
+.date-chip svg{color:var(--coral)}
+
+/* ── PAGE ── */
+.page{padding:24px 28px}
+
+/* ── TEAM SNAPSHOT ── */
+.snapshot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.snapshot-title{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em}
+.snapshot-month{font-size:12px;color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:5px 10px}
+.team-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:28px}
+
+/* ── ADVISOR SNAPSHOT CARD ── */
+.adv-snap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .15s}
+.adv-snap:hover{box-shadow:0 4px 16px rgba(0,0,0,.07)}
+.adv-snap-bar{position:absolute;left:0;top:0;bottom:0;width:3px}
+.adv-snap.z-green .adv-snap-bar{background:var(--green)}
+.adv-snap.z-amber .adv-snap-bar{background:var(--amber)}
+.adv-snap.z-red .adv-snap-bar{background:var(--red)}
+.adv-snap.z-none .adv-snap-bar{background:var(--text-3)}
+.adv-snap-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.adv-avatar{width:38px;height:38px;border-radius:50%;background:var(--coral);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.adv-name{font-size:14px;font-weight:700;color:var(--text)}
+.adv-zone-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:2px}
+.zb-green{background:var(--green-light);color:var(--green-text);border:1px solid var(--green-border)}
+.zb-amber{background:var(--amber-light);color:var(--amber-text);border:1px solid var(--amber-border)}
+.zb-red{background:var(--red-light);color:var(--red-text);border:1px solid var(--red-border)}
+.zb-none{background:#F5F5F5;color:#aaa;border:1px solid #E5E5E5}
+.zb-dot{width:6px;height:6px;border-radius:50%}
+.adv-quota-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:5px}
+.adv-quota-bar{height:6px;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.adv-quota-fill{height:100%;border-radius:10px;transition:width .5s ease}
+.adv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.adv-stat{background:var(--bg);border-radius:8px;padding:7px 8px;text-align:center}
+.adv-stat-lbl{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.adv-stat-val{font-size:14px;font-weight:700;color:var(--text);margin-top:1px}
+.no-data-badge{font-size:11px;color:var(--text-3);font-style:italic;margin-top:4px}
+
+/* ── SECTION DIVIDER ── */
+.section-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:28px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;cursor:pointer;transition:box-shadow .12s}
+.stat-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.07);border-color:#ccc}
+.stat-card-lbl{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-card-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.stat-card-sub{font-size:11px;color:var(--text-3);margin-top:5px}
+.stat-edit-btn{position:absolute;top:10px;right:10px;opacity:0;transition:opacity .12s;background:none;border:none;cursor:pointer;color:var(--text-3);padding:3px}
+.stat-card:hover .stat-edit-btn{opacity:1}
+.stat-add{border-style:dashed;background:transparent;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer}
+.stat-add:hover{border-color:var(--coral);color:var(--coral);background:var(--coral-light)}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px}
+
+/* ── TEAM GOAL ── */
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.goal-card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.goal-month{font-size:13px;font-weight:700;color:var(--text)}
+.goal-reward{font-size:11px;color:var(--coral);font-weight:600;margin-top:2px;display:flex;align-items:center;gap:4px}
+.goal-numbers{display:flex;align-items:baseline;gap:4px;margin-bottom:8px}
+.goal-current{font-size:32px;font-weight:700;color:var(--text);line-height:1}
+.goal-sep{font-size:18px;color:var(--text-3)}
+.goal-target{font-size:18px;font-weight:600;color:var(--text-2)}
+.goal-pct{font-size:12px;font-weight:700;color:var(--coral);margin-left:8px}
+.goal-bar-wrap{height:10px;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:10px}
+.goal-bar-fill{height:100%;background:linear-gradient(90deg,var(--coral),var(--coral-h));border-radius:10px;transition:width .6s ease}
+.goal-edit-btn{font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:6px;font-family:inherit}
+.goal-edit-btn:hover{background:var(--bg);color:var(--text)}
+.goal-empty{text-align:center;padding:2rem;color:var(--text-3);font-size:13px}
+.goal-add-btn{margin-top:10px;width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;background:transparent;font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;font-family:inherit}
+.goal-add-btn:hover{border-color:var(--coral);color:var(--coral);background:var(--coral-light)}
+
+/* ── CONTENT CARDS (announcements, shoutouts, promos) ── */
+.content-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.content-col-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.content-col-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px}
+.content-col-title svg{color:var(--coral);width:14px;height:14px}
+.content-col-add{width:26px;height:26px;border:1px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-3)}
+.content-col-add:hover{background:var(--coral);border-color:var(--coral);color:#fff}
+.content-items{padding:10px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto}
+.content-item{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);position:relative;font-size:12px;line-height:1.6;color:var(--text);cursor:pointer;transition:border-color .12s}
+.content-item:hover{border-color:#ccc}
+.content-item.starred{border-left:3px solid var(--coral);background:var(--coral-light)}
+.content-item-actions{display:none;position:absolute;top:6px;right:6px;gap:4px}
+.content-item:hover .content-item-actions{display:flex}
+.cia-btn{width:22px;height:22px;border:none;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--text-3);font-size:11px}
+.cia-btn:hover{background:var(--red-light);color:var(--red-text)}
+.content-empty{padding:1.5rem;text-align:center;color:var(--text-3);font-size:12px}
+
+/* ── INDIVIDUAL GOALS ── */
+.ig-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ig-head{display:flex;align-items:center;justify-content:space-between}
+.ig-name{font-size:13px;font-weight:700;color:var(--text)}
+.ig-type{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--coral-light);color:var(--coral-dark)}
+.ig-tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ig-tier{border-radius:7px;padding:7px 5px;text-align:center;border:1px solid var(--border)}
+.ig-tier-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}
+.ig-tier-val{font-size:16px;font-weight:700;color:var(--text);margin-top:2px}
+.ig-tier.quota-tier{background:var(--coral-light);border-color:var(--coral-mid)}
+.ig-tier.quota-tier .ig-tier-lbl{color:var(--coral-dark)}
+.ig-tier.quota-tier .ig-tier-val{color:var(--coral-dark)}
+.ig-progress{display:flex;align-items:center;gap:8px}
+.ig-prog-num{font-size:13px;font-weight:700;color:var(--text)}
+.ig-prog-bar-wrap{flex:1;height:6px;background:var(--bg);border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.ig-prog-fill{height:100%;border-radius:10px;background:var(--coral)}
+.ig-edit-del{display:flex;gap:6px;margin-top:2px}
+.ig-btn{flex:1;padding:6px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:11px;font-weight:600;cursor:pointer;color:var(--text-2);font-family:inherit}
+.ig-btn:hover{background:var(--bg)}
+.ig-btn.del:hover{background:var(--red-light);color:var(--red-text);border-color:var(--red-border)}
+.ig-add-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+
+/* ── SPINNER / TOAST ── */
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--coral);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-state{display:flex;align-items:center;gap:10px;padding:3rem;color:var(--text-3);font-size:13px;justify-content:center}
+.toast{position:fixed;bottom:22px;right:22px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;color:#fff;background:var(--green)}
+.toast.show{opacity:1}
+.toast.error{background:var(--red)}
+
+/* ── MODAL ── */
+.modal-bd{display:none;position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-bd.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px}
+.mf{margin-bottom:12px}
+.mf label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px}
+.mf input,.mf textarea,.mf select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;outline:none}
+.mf input:focus,.mf textarea:focus,.mf select:focus{border-color:var(--coral);background:var(--surface)}
+.mf textarea{resize:vertical;min-height:72px;line-height:1.6}
+.mf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mf-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.mbtn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.mbtn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text)}
+.mbtn:hover{background:var(--bg)}
+.mbtn-primary{background:var(--coral);color:#fff;border-color:var(--coral)}
+.mbtn-primary:hover{background:var(--coral-h)}
+.mbtn-danger{color:var(--red-text);border-color:var(--red-border)}
+.mbtn-danger:hover{background:var(--red-light)}
+.starred-toggle{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;color:var(--text-2)}
+.starred-toggle input{width:16px;height:16px;accent-color:var(--coral)}
+
+/* ── FILTER PILLS for individual goals ── */
+.pill-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);transition:all .12s}
+.pill:hover{border-color:#bbb}
+.pill.active{background:var(--coral);border-color:var(--coral);color:#fff}
+
+/* ── MOBILE ── */
+@media(max-width:820px){
+  .sidebar{width:60px}
+  .brand-name,.brand-sub,.nav-item span{display:none}
+  .nav-item{justify-content:center;padding:10px}
+  .main{margin-left:60px}
+  .topbar{padding:10px 14px}
+  .page{padding:14px}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .team-cards{grid-template-columns:1fr}
+  .date-chip{display:none}
+  .mf-4{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><span>EH</span></div>
+    <div><div class="brand-name">Enrollment Hub</div><div class="brand-sub">Director Panel</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="dashboard.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" href="team-roster.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="3"/><path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6"/><circle cx="16" cy="7" r="2.5"/><path d="M19 18c0-2.5-1.5-4.5-3.5-5.2"/></svg>
+      <span>Team Roster</span>
+    </a>
+    <a class="nav-item" href="reports.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 13l2.5-3.5 2.5 2.5L15 8"/></svg>
+      <span>Reports</span>
+    </a>
+    <a class="nav-item" href="meetings.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M7 2v4M13 2v4M3 9h14"/></svg>
+      <span>Meetings</span>
+    </a>
+    <a class="nav-item" href="notes.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="12" height="16" rx="2"/><path d="M7 7h6M7 11h6M7 15h3"/></svg>
+      <span>Notes</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="nav-item logout">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M9 14l4-4-4-4M13 10H3"/></svg>
+      <span>Log out</span>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="date-chip">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1.5v3M11 1.5v3M2 7h12"/></svg>
+      <span id="today-date"></span>
+    </div>
+  </div>
+
+  <div class="page" id="page">
+    <div class="loading-state" id="loading"><div class="spinner"></div>Loading dashboard…</div>
+    <div id="dash-content" style="display:none">
+
+      <!-- ── TEAM SNAPSHOT ── -->
+      <div class="snapshot-header">
+        <div class="snapshot-title">Team snapshot</div>
+        <div class="snapshot-month" id="snapshot-month"></div>
+      </div>
+      <div class="team-cards" id="team-cards"></div>
+
+      <!-- ── STATS ── -->
+      <div class="section-label">Stats</div>
+      <div class="stats-row" id="stats-row"></div>
+
+      <!-- ── TEAM GOAL + ANNOUNCEMENTS ── -->
+      <div class="section-label">Goal &amp; Announcements</div>
+      <div class="two-col" style="margin-bottom:28px">
+        <div class="goal-card" id="goal-card"></div>
+        <div class="content-col" id="ann-col">
+          <div class="content-col-head">
+            <div class="content-col-title">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2a6 6 0 0 1 6 6v2l1 2H1l1-2V8a6 6 0 0 1 6-6zM6 14a2 2 0 0 0 4 0"/></svg>
+              Announcements
+            </div>
+            <button class="content-col-add" onclick="openContentModal('announcement')">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            </button>
+          </div>
+          <div class="content-items" id="ann-list"></div>
+        </div>
+      </div>
+
+      <!-- ── SHOUTOUTS + PROMOS ── -->
+      <div class="section-label">Shoutouts &amp; Promos</div>
+      <div class="two-col" style="margin-bottom:28px">
+        <div class="content-col">
+          <div class="content-col-head">
+            <div class="content-col-title">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 4H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1v3l3-3h6a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1z"/></svg>
+              Shoutouts
+            </div>
+            <button class="content-col-add" onclick="openContentModal('shoutout')">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            </button>
+          </div>
+          <div class="content-items" id="shout-list"></div>
+        </div>
+        <div class="content-col">
+          <div class="content-col-head">
+            <div class="content-col-title">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2h8a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM3 5h10v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5zM6 9h4"/></svg>
+              Promos
+            </div>
+            <button class="content-col-add" onclick="openContentModal('promo')">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            </button>
+          </div>
+          <div class="content-items" id="promo-list"></div>
+        </div>
+      </div>
+
+      <!-- ── INDIVIDUAL GOALS ── -->
+      <div class="section-label">Individual Goals</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Period</div>
+          <div class="pill-row" id="ig-filter-row" style="margin-bottom:0"></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Person</div>
+          <div class="pill-row" id="ig-person-row" style="margin-bottom:0"></div>
+        </div>
+        <div style="flex-shrink:0;padding-top:19px">
+          <button class="mbtn mbtn-primary" style="font-size:12px;padding:5px 12px" onclick="openIGModal()">
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            Add goal
+          </button>
+        </div>
+      </div>
+      <div id="ig-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:28px"></div>
+
+    </div><!-- /dash-content -->
+  </div><!-- /page -->
+</main>
+
+<!-- ── CONTENT MODAL (announcements / shoutouts / promos) ── -->
+<div class="modal-bd" id="content-modal">
+<div class="modal">
+  <h3 id="content-modal-title">Add Announcement</h3>
+  <div class="mf">
+    <label>Content</label>
+    <textarea id="cm-content" placeholder="Type here…" rows="4"></textarea>
+  </div>
+  <div class="mf" id="cm-starred-wrap">
+    <label class="starred-toggle">
+      <input type="checkbox" id="cm-starred"/> Mark as starred (pinned / important)
+    </label>
+  </div>
+  <div class="mbtn-row">
+    <button class="mbtn mbtn-danger" id="cm-delete-btn" style="display:none;margin-right:auto" onclick="deleteContentItem()">Delete</button>
+    <button class="mbtn" onclick="closeContentModal()">Cancel</button>
+    <button class="mbtn mbtn-primary" onclick="saveContentItem()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- ── STAT MODAL ── -->
+<div class="modal-bd" id="stat-modal">
+<div class="modal">
+  <h3 id="stat-modal-title">Add stat</h3>
+  <div class="mf"><label>Title</label><input type="text" id="sm-title" placeholder="e.g. Total Enrollments"/></div>
+  <div class="mf"><label>Value</label><input type="text" id="sm-value" placeholder="e.g. 1,234"/></div>
+  <div class="mf"><label>Subtext (optional)</label><input type="text" id="sm-sub" placeholder="e.g. +12% from last month"/></div>
+  <div class="mbtn-row">
+    <button class="mbtn mbtn-danger" id="sm-delete-btn" style="display:none;margin-right:auto" onclick="deleteStat()">Delete</button>
+    <button class="mbtn" onclick="closeStatModal()">Cancel</button>
+    <button class="mbtn mbtn-primary" onclick="saveStat()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- ── TEAM GOAL MODAL ── -->
+<div class="modal-bd" id="goal-modal">
+<div class="modal">
+  <h3 id="goal-modal-title">Set team goal</h3>
+  <div class="mf"><label>Month / label</label><input type="text" id="gm-month" placeholder="e.g. April 2026"/></div>
+  <div class="mf-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div class="mf" style="margin:0"><label>Current count</label><input type="number" id="gm-current" min="0" placeholder="0"/></div>
+    <div class="mf" style="margin:0"><label>Target</label><input type="number" id="gm-target" min="0" placeholder="100"/></div>
+  </div>
+  <div class="mf"><label>Reward (optional)</label><input type="text" id="gm-reward" placeholder="e.g. Team lunch!"/></div>
+  <div class="mbtn-row">
+    <button class="mbtn mbtn-danger" id="gm-delete-btn" style="display:none;margin-right:auto" onclick="deleteGoal()">Delete</button>
+    <button class="mbtn" onclick="closeGoalModal()">Cancel</button>
+    <button class="mbtn mbtn-primary" onclick="saveGoal()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- ── INDIVIDUAL GOAL MODAL ── -->
+<div class="modal-bd" id="ig-modal">
+<div class="modal">
+  <h3 id="ig-modal-title">Add individual goal</h3>
+  <div class="mf-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div class="mf" style="margin:0"><label>Name</label><input type="text" id="igm-name" placeholder="Jordan Lee"/></div>
+    <div class="mf" style="margin:0"><label>Period</label>
+      <select id="igm-type">
+        <option value="current_month">Current month</option>
+        <option value="last_month">Last month</option>
+        <option value="next_month">Next month</option>
+      </select>
+    </div>
+  </div>
+  <div class="mf-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div class="mf" style="margin:0"><label>Progress</label><input type="number" id="igm-progress" min="0" placeholder="0"/></div>
+    <div class="mf" style="margin:0"><label>Final count</label><input type="number" id="igm-final" min="0" placeholder="—"/></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+    <div class="mf" style="margin:0"><label>Quota</label><input type="number" id="igm-quota" min="0" placeholder="0"/></div>
+    <div class="mf" style="margin:0"><label>Bronze</label><input type="number" id="igm-bronze" min="0" placeholder="—"/></div>
+    <div class="mf" style="margin:0"><label>Silver</label><input type="number" id="igm-silver" min="0" placeholder="—"/></div>
+    <div class="mf" style="margin:0"><label>Gold</label><input type="number" id="igm-gold" min="0" placeholder="—"/></div>
+  </div>
+  <div class="mbtn-row">
+    <button class="mbtn mbtn-danger" id="igm-delete-btn" style="display:none;margin-right:auto" onclick="deleteIG()">Delete</button>
+    <button class="mbtn" onclick="closeIGModal()">Cancel</button>
+    <button class="mbtn mbtn-primary" onclick="saveIG()">Save</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ SUPABASE ══ */
+const SUPABASE_URL='https://uwsgychdjgszetkmtths.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3c2d5Y2hkamdzemV0a210dGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMDQ5MTEsImV4cCI6MjA5MTY4MDkxMX0.8l0HEVlMiATqGWQW705W-_Kz5G7zQnq8OQ17IgeRs20';
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+
+/* ══ STATE ══ */
+let members=[],kpiData={},quotas={},stats=[],teamGoal=null,
+    announcements=[],shoutouts=[],promos=[],indGoals=[];
+let igFilter='all';
+let igPerson='all';
+
+/* ══ HELPERS ══ */
+const now=new Date();
+const toMK=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const currentMonth=toMK(now);
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const initials=n=>n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast${err?' error':''} show`;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+/* ══ LOAD ══ */
+async function loadAll(){
+  try{
+    /* members + schedules */
+    const[{data:mData},{data:sData},{data:kpiRows},{data:qRows},
+          {data:statsData},{data:goalData},{data:annData},
+          {data:shoutData},{data:promoData},{data:igData}]=await Promise.all([
+      db.from('members').select('id,first,last,status').order('first'),
+      db.from('schedules').select('*'),
+      db.from('kpi_data').select('*'),
+      db.from('kpi_quotas').select('*'),
+      db.from('dash_stats').select('*').order('sort_order'),
+      db.from('dash_team_goal').select('*').order('created_at',{ascending:false}).limit(1),
+      db.from('dash_announcements').select('*').order('sort_order'),
+      db.from('dash_shoutouts').select('*').order('sort_order'),
+      db.from('dash_promos').select('*').order('sort_order'),
+      db.from('dash_individual_goals').select('*').order('created_at',{ascending:false}),
+    ]);
+
+    members=(mData||[]).map(m=>{
+      const sched={};
+      for(let i=0;i<7;i++)sched[i]={on:false,start:'09:00',end:'17:00'};
+      (sData||[]).filter(s=>s.member_id===m.id).forEach(s=>{
+        sched[s.day_of_week]={on:s.is_on,start:s.start_time||'09:00',end:s.end_time||'17:00'};
+      });
+      return{...m,schedule:sched};
+    });
+
+    kpiData={};
+    members.forEach(m=>kpiData[m.id]=[]);
+    (kpiRows||[]).forEach(r=>{if(kpiData[r.member_id])kpiData[r.member_id].push({...r,enrollments:+r.enrollments||0,days:+r.days||0,hours:+r.hours||0,inbound:+r.inbound||0,outbound:+r.outbound||0,soa:+r.soa||0});});
+
+    quotas={};
+    (qRows||[]).forEach(q=>quotas[`${q.member_id}-${q.month}`]=+q.quota||0);
+
+    stats=statsData||[];
+    teamGoal=(goalData&&goalData[0])||null;
+    announcements=annData||[];
+    shoutouts=shoutData||[];
+    promos=promoData||[];
+    indGoals=igData||[];
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('dash-content').style.display='block';
+    renderAll();
+  }catch(e){
+    showToast('Error loading: '+e.message,true);
+  }
+}
+
+function renderAll(){
+  renderTeamSnapshot();
+  renderStats();
+  renderTeamGoal();
+  renderContentList('ann-list',announcements,'announcement');
+  renderContentList('shout-list',shoutouts,'shoutout');
+  renderContentList('promo-list',promos,'promo');
+  renderIndGoals();
+}
+
+/* ══ TEAM SNAPSHOT ══ */
+const hrsFromShift=(s,e)=>{const[sh,sm]=(s||'09:00').split(':').map(Number);const[eh,em]=(e||'17:00').split(':').map(Number);return Math.max(0,((eh*60+em)-(sh*60+sm))/60);};
+const weeklyHrs=m=>Object.values(m.schedule).reduce((t,d)=>t+(d.on?hrsFromShift(d.start,d.end):0),0);
+
+function renderTeamSnapshot(){
+  const snap=document.getElementById('snapshot-month');
+  snap.textContent=`${MN[now.getMonth()]} ${now.getFullYear()}`;
+  const grid=document.getElementById('team-cards');
+  if(!members.length){grid.innerHTML=`<div style="color:var(--text-3);font-size:13px;padding:1rem">No team members yet — add them in Team Roster.</div>`;return;}
+  grid.innerHTML=members.map(m=>{
+    const row=(kpiData[m.id]||[]).find(r=>r.month===currentMonth);
+    const quota=quotas[`${m.id}-${currentMonth}`]||0;
+    const enrolled=row?.enrollments||0;
+    const days=row?.days||0;
+    const pace=days>0?(enrolled/days).toFixed(2):'—';
+    const wdays=workingDaysInMonth(currentMonth);
+    const expDay=quota>0&&wdays>0?(quota/wdays):0;
+    const pct=expDay>0?Math.min(100,(enrolled/quota*100)):null;
+    // zone
+    let zoneCls='z-none',zbCls='zb-none',zLabel='No quota',zDot='#ccc',barColor='#ccc';
+    if(pct!==null){
+      if(pct>=90){zoneCls='z-green';zbCls='zb-green';zLabel='On Track';zDot='var(--green)';barColor='var(--green)';}
+      else if(pct>=70){zoneCls='z-amber';zbCls='zb-amber';zLabel='Watch';zDot='var(--amber)';barColor='var(--amber)';}
+      else{zoneCls='z-red';zbCls='zb-red';zLabel='Needs attention';zDot='var(--red)';barColor='var(--red)';}
+    }
+    const fillW=pct!==null?pct.toFixed(1):0;
+    return`<div class="adv-snap ${zoneCls}">
+      <div class="adv-snap-bar"></div>
+      <div class="adv-snap-top">
+        <div class="adv-avatar">${initials(m.first+' '+m.last)}</div>
+        <div>
+          <div class="adv-name">${m.first} ${m.last}</div>
+          <div class="adv-zone-badge ${zbCls}"><div class="zb-dot" style="background:${zDot}"></div>${zLabel}</div>
+        </div>
+      </div>
+      ${quota>0?`
+        <div class="adv-quota-label"><span>${enrolled} enrolled</span><span>Quota: ${quota}</span></div>
+        <div class="adv-quota-bar"><div class="adv-quota-fill" style="width:${fillW}%;background:${barColor}"></div></div>
+      `:`<div class="no-data-badge">No quota set for this month</div>`}
+      <div class="adv-stats">
+        <div class="adv-stat"><div class="adv-stat-lbl">Enrolled</div><div class="adv-stat-val">${enrolled}</div></div>
+        <div class="adv-stat"><div class="adv-stat-lbl">Pace/day</div><div class="adv-stat-val">${pace}</div></div>
+        <div class="adv-stat"><div class="adv-stat-lbl">Quota%</div><div class="adv-stat-val">${pct!==null?pct.toFixed(0)+'%':'—'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function workingDaysInMonth(monthKey){
+  const[y,m]=monthKey.split('-').map(Number);
+  const days=new Date(y,m,0).getDate();
+  let count=0;
+  for(let d=1;d<=days;d++){const dow=new Date(y,m-1,d).getDay();if(dow>0&&dow<6)count++;}
+  return count;
+}
+
+/* ══ STATS ══ */
+function renderStats(){
+  const row=document.getElementById('stats-row');
+  let html=stats.map(s=>`
+    <div class="stat-card">
+      <button class="stat-edit-btn" onclick="openStatModal('${s.id}')">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg>
+      </button>
+      <div class="stat-card-lbl">${s.title||''}</div>
+      <div class="stat-card-val">${s.value||'—'}</div>
+      ${s.subtext?`<div class="stat-card-sub">${s.subtext}</div>`:''}
+    </div>`).join('');
+  html+=`<div class="stat-card stat-add" onclick="openStatModal()">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+    Add stat
+  </div>`;
+  row.innerHTML=html;
+}
+
+let editingStatId=null;
+function openStatModal(id){
+  editingStatId=id||null;
+  document.getElementById('stat-modal-title').textContent=id?'Edit stat':'Add stat';
+  document.getElementById('sm-delete-btn').style.display=id?'block':'none';
+  const s=id?stats.find(x=>x.id===id):null;
+  document.getElementById('sm-title').value=s?.title||'';
+  document.getElementById('sm-value').value=s?.value||'';
+  document.getElementById('sm-sub').value=s?.subtext||'';
+  document.getElementById('stat-modal').classList.add('open');
+}
+function closeStatModal(){document.getElementById('stat-modal').classList.remove('open');}
+async function saveStat(){
+  const data={title:document.getElementById('sm-title').value.trim(),value:document.getElementById('sm-value').value.trim(),subtext:document.getElementById('sm-sub').value.trim(),sort_order:editingStatId?stats.find(s=>s.id===editingStatId)?.sort_order||0:stats.length};
+  if(!data.title||!data.value){showToast('Title and value required.',true);return;}
+  const {error}=editingStatId?await db.from('dash_stats').update(data).eq('id',editingStatId):await db.from('dash_stats').insert(data);
+  if(error){showToast('Error: '+error.message,true);return;}
+  showToast(editingStatId?'Stat updated.':'Stat added.');
+  closeStatModal();await loadAll();
+}
+async function deleteStat(){
+  if(!confirm('Delete this stat?'))return;
+  await db.from('dash_stats').delete().eq('id',editingStatId);
+  showToast('Deleted.');closeStatModal();await loadAll();
+}
+
+/* ══ TEAM GOAL ══ */
+function renderTeamGoal(){
+  const el=document.getElementById('goal-card');
+  if(!teamGoal){
+    el.innerHTML=`<div class="goal-empty">No team goal set yet.</div><button class="goal-add-btn" onclick="openGoalModal()">+ Set team goal</button>`;
+    return;
+  }
+  const g=teamGoal;
+  const pct=g.target>0?Math.min(100,Math.round(g.current_count/g.target*100)):0;
+  el.innerHTML=`
+    <div class="goal-card-head">
+      <div>
+        <div class="goal-month">${g.month_label||'Team Goal'}</div>
+        ${g.reward?`<div class="goal-reward"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 2l1.5 3.5H12l-2.8 2 1 3.5L7 9l-3.2 2 1-3.5L2 5.5h3.5z"/></svg>${g.reward}</div>`:''}
+      </div>
+      <button class="goal-edit-btn" onclick="openGoalModal('${g.id}')">Edit</button>
+    </div>
+    <div class="goal-numbers">
+      <span class="goal-current">${g.current_count||0}</span>
+      <span class="goal-sep">/</span>
+      <span class="goal-target">${g.target||0}</span>
+      <span class="goal-pct">${pct}%</span>
+    </div>
+    <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--text-3)">${g.target-g.current_count>0?`${g.target-g.current_count} enrollments to go`:'Goal reached! 🎉'}</div>`;
+}
+
+let editingGoalId=null;
+function openGoalModal(id){
+  editingGoalId=id||null;
+  document.getElementById('goal-modal-title').textContent=id?'Edit team goal':'Set team goal';
+  document.getElementById('gm-delete-btn').style.display=id?'block':'none';
+  const g=id?teamGoal:null;
+  document.getElementById('gm-month').value=g?.month_label||`${MN[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('gm-current').value=g?.current_count||0;
+  document.getElementById('gm-target').value=g?.target||'';
+  document.getElementById('gm-reward').value=g?.reward||'';
+  document.getElementById('goal-modal').classList.add('open');
+}
+function closeGoalModal(){document.getElementById('goal-modal').classList.remove('open');}
+async function saveGoal(){
+  const data={month_label:document.getElementById('gm-month').value.trim(),current_count:parseInt(document.getElementById('gm-current').value)||0,target:parseInt(document.getElementById('gm-target').value)||0,reward:document.getElementById('gm-reward').value.trim()||null};
+  if(!data.target){showToast('Target required.',true);return;}
+  const {error}=editingGoalId?await db.from('dash_team_goal').update(data).eq('id',editingGoalId):await db.from('dash_team_goal').insert(data);
+  if(error){showToast('Error: '+error.message,true);return;}
+  showToast('Goal saved.');closeGoalModal();await loadAll();
+}
+async function deleteGoal(){
+  if(!confirm('Delete this goal?'))return;
+  await db.from('dash_team_goal').delete().eq('id',editingGoalId);
+  showToast('Deleted.');closeGoalModal();teamGoal=null;renderTeamGoal();
+}
+
+/* ══ CONTENT (announcements / shoutouts / promos) ══ */
+function renderContentList(elId,items,type){
+  const el=document.getElementById(elId);
+  if(!items.length){el.innerHTML=`<div class="content-empty">Nothing yet — click + to add.</div>`;return;}
+  el.innerHTML=items.map(item=>`
+    <div class="content-item${item.is_starred?' starred':''}">
+      ${item.content||''}
+      <div class="content-item-actions">
+        <button class="cia-btn" onclick="openContentModal('${type}','${item.id}')" title="Edit">
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+let contentModalType=null,editingContentId=null;
+const contentSets={announcement:{data:()=>announcements,table:'dash_announcements',starred:true},shoutout:{data:()=>shoutouts,table:'dash_shoutouts',starred:false},promo:{data:()=>promos,table:'dash_promos',starred:false}};
+const contentLabels={announcement:'Announcement',shoutout:'Shoutout',promo:'Promo'};
+
+function openContentModal(type,id){
+  contentModalType=type;editingContentId=id||null;
+  const cfg=contentSets[type];
+  document.getElementById('content-modal-title').textContent=(id?'Edit ':'Add ')+contentLabels[type];
+  document.getElementById('cm-delete-btn').style.display=id?'block':'none';
+  document.getElementById('cm-starred-wrap').style.display=cfg.starred?'block':'none';
+  const item=id?(cfg.data()||[]).find(x=>x.id===id):null;
+  document.getElementById('cm-content').value=item?.content||'';
+  document.getElementById('cm-starred').checked=item?.is_starred||false;
+  document.getElementById('content-modal').classList.add('open');
+}
+function closeContentModal(){document.getElementById('content-modal').classList.remove('open');}
+async function saveContentItem(){
+  const cfg=contentSets[contentModalType];
+  const content=document.getElementById('cm-content').value.trim();
+  if(!content){showToast('Content required.',true);return;}
+  const data={content,sort_order:editingContentId?(cfg.data()||[]).find(x=>x.id===editingContentId)?.sort_order||0:(cfg.data()||[]).length};
+  if(cfg.starred)data.is_starred=document.getElementById('cm-starred').checked;
+  const {error}=editingContentId?await db.from(cfg.table).update(data).eq('id',editingContentId):await db.from(cfg.table).insert(data);
+  if(error){showToast('Error: '+error.message,true);return;}
+  showToast('Saved.');closeContentModal();await loadAll();
+}
+async function deleteContentItem(){
+  if(!confirm('Delete this item?'))return;
+  const cfg=contentSets[contentModalType];
+  await db.from(cfg.table).delete().eq('id',editingContentId);
+  showToast('Deleted.');closeContentModal();await loadAll();
+}
+
+/* ══ INDIVIDUAL GOALS ══ */
+const igFilterLabels={all:'All',current_month:'This month',last_month:'Last month',next_month:'Next month'};
+
+function getIGPersonNames(){
+  const names=[...new Set(indGoals.map(g=>g.member_name).filter(Boolean))].sort();
+  return names;
+}
+
+function renderIGFilters(){
+  document.getElementById('ig-filter-row').innerHTML=Object.entries(igFilterLabels).map(([k,v])=>
+    `<div class="pill${igFilter===k?' active':''}" onclick="setIGFilter('${k}')">${v}</div>`
+  ).join('');
+  const names=getIGPersonNames();
+  const personRow=document.getElementById('ig-person-row');
+  if(!personRow)return;
+  personRow.innerHTML=`<div class="pill${igPerson==='all'?' active':''}" onclick="setIGPerson('all')">All</div>`+
+    names.map(n=>`<div class="pill${igPerson===n?' active':''}" onclick="setIGPerson('${n.replace(/'/g,"\\'")}")">${n}</div>`).join('');
+}
+
+function setIGFilter(f){igFilter=f;renderIGFilters();renderIndGoals();}
+function setIGPerson(p){igPerson=p;renderIGFilters();renderIndGoals();}
+
+function renderIndGoals(){
+  renderIGFilters();
+  let filtered=igFilter==='all'?indGoals:indGoals.filter(g=>g.goal_type===igFilter);
+  if(igPerson!=='all')filtered=filtered.filter(g=>g.member_name===igPerson);
+  const el=document.getElementById('ig-grid');
+  if(!filtered.length){el.innerHTML=`<div style="color:var(--text-3);font-size:13px;padding:.5rem 0">No goals for this period.</div>`;return;}
+  el.innerHTML=filtered.map(g=>{
+    const pct=g.quota_goal>0?Math.min(100,Math.round((g.current_progress||0)/g.quota_goal*100)):null;
+    const typeLabel={current_month:'This month',last_month:'Last month',next_month:'Next month'}[g.goal_type]||g.goal_type;
+    return`<div class="ig-card">
+      <div class="ig-head">
+        <div class="ig-name">${g.member_name||'—'}</div>
+        <div class="ig-type">${typeLabel}</div>
+      </div>
+      <div class="ig-tiers">
+        <div class="ig-tier quota-tier"><div class="ig-tier-lbl">Quota</div><div class="ig-tier-val">${g.quota_goal||'—'}</div></div>
+        <div class="ig-tier"><div class="ig-tier-lbl">Bronze</div><div class="ig-tier-val">${g.bronze_goal||'—'}</div></div>
+        <div class="ig-tier"><div class="ig-tier-lbl">Silver</div><div class="ig-tier-val">${g.silver_goal||'—'}</div></div>
+        <div class="ig-tier"><div class="ig-tier-lbl">Gold</div><div class="ig-tier-val">${g.gold_goal||'—'}</div></div>
+      </div>
+      ${pct!==null?`
+        <div class="ig-progress">
+          <span class="ig-prog-num">${g.current_progress||0}</span>
+          <div class="ig-prog-bar-wrap"><div class="ig-prog-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;color:var(--text-3);white-space:nowrap">${pct}%</span>
+        </div>`:''}
+      ${g.final_count!=null?`<div style="font-size:11px;color:var(--text-3)">Final: <strong style="color:var(--text)">${g.final_count}</strong></div>`:''}
+      <div class="ig-edit-del">
+        <button class="ig-btn" onclick="openIGModal('${g.id}')">Edit</button>
+        <button class="ig-btn del" onclick="deleteIGById('${g.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let editingIGId=null;
+function openIGModal(id){
+  editingIGId=id||null;
+  document.getElementById('ig-modal-title').textContent=id?'Edit individual goal':'Add individual goal';
+  document.getElementById('igm-delete-btn').style.display=id?'block':'none';
+  const g=id?indGoals.find(x=>x.id===id):null;
+  document.getElementById('igm-name').value=g?.member_name||'';
+  document.getElementById('igm-type').value=g?.goal_type||'current_month';
+  document.getElementById('igm-progress').value=g?.current_progress||0;
+  document.getElementById('igm-final').value=g?.final_count||'';
+  document.getElementById('igm-quota').value=g?.quota_goal||'';
+  document.getElementById('igm-bronze').value=g?.bronze_goal||'';
+  document.getElementById('igm-silver').value=g?.silver_goal||'';
+  document.getElementById('igm-gold').value=g?.gold_goal||'';
+  document.getElementById('ig-modal').classList.add('open');
+}
+function closeIGModal(){document.getElementById('ig-modal').classList.remove('open');}
+async function saveIG(){
+  const name=document.getElementById('igm-name').value.trim();
+  if(!name){showToast('Name required.',true);return;}
+  const data={member_name:name,goal_type:document.getElementById('igm-type').value,current_progress:parseInt(document.getElementById('igm-progress').value)||0,final_count:parseInt(document.getElementById('igm-final').value)||null,quota_goal:parseInt(document.getElementById('igm-quota').value)||null,bronze_goal:parseInt(document.getElementById('igm-bronze').value)||null,silver_goal:parseInt(document.getElementById('igm-silver').value)||null,gold_goal:parseInt(document.getElementById('igm-gold').value)||null};
+  const {error}=editingIGId?await db.from('dash_individual_goals').update(data).eq('id',editingIGId):await db.from('dash_individual_goals').insert(data);
+  if(error){showToast('Error: '+error.message,true);return;}
+  showToast('Saved.');closeIGModal();await loadAll();
+}
+async function deleteIG(){
+  if(!confirm('Delete this goal?'))return;
+  await db.from('dash_individual_goals').delete().eq('id',editingIGId);
+  showToast('Deleted.');closeIGModal();await loadAll();
+}
+async function deleteIGById(id){
+  if(!confirm('Delete this goal?'))return;
+  await db.from('dash_individual_goals').delete().eq('id',id);
+  showToast('Deleted.');await loadAll();
+}
+
+/* ══ CLOSE MODALS ON BACKDROP ══ */
+['content-modal','stat-modal','goal-modal','ig-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');
+  });
+});
+
+/* ══ INIT ══ */
+document.getElementById('today-date').textContent=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+loadAll();
+</script>
+</body>
+</html>
