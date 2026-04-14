@@ -397,7 +397,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="modal">
   <h3 id="ig-modal-title">Add individual goal</h3>
   <div class="mf-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-    <div class="mf" style="margin:0"><label>Name</label><input type="text" id="igm-name" placeholder="Jordan Lee"/></div>
+    <div class="mf" style="margin:0"><label>Team member</label>
+      <select id="igm-member">
+        <option value="">— Select member —</option>
+      </select>
+    </div>
     <div class="mf" style="margin:0"><label>Period</label>
       <select id="igm-type">
         <option value="current_month">Current month</option>
@@ -716,10 +720,7 @@ async function deleteContentItem(){
 /* ══ INDIVIDUAL GOALS ══ */
 const igFilterLabels={all:'All',current_month:'This month',last_month:'Last month',next_month:'Next month'};
 
-function getIGPersonNames(){
-  const names=[...new Set(indGoals.map(g=>g.member_name).filter(Boolean))].sort();
-  return names;
-}
+/* person filter uses members array from roster */
 
 function renderIGFilters(){
   document.getElementById('ig-filter-row').innerHTML=Object.entries(igFilterLabels).map(([k,v])=>
@@ -729,7 +730,7 @@ function renderIGFilters(){
   const personRow=document.getElementById('ig-person-row');
   if(!personRow)return;
   personRow.innerHTML=`<div class="pill${igPerson==='all'?' active':''}" onclick="setIGPerson('all')">All</div>`+
-    names.map(n=>`<div class="pill${igPerson===n?' active':''}" onclick="setIGPerson('${n.replace(/'/g,"\\'")}")">${n}</div>`).join('');
+    members.map(m=>`<div class="pill${igPerson===m.id?' active':''}" onclick="setIGPerson('${m.id}')">${m.first} ${m.last}</div>`).join('');
 }
 
 function setIGFilter(f){igFilter=f;renderIGFilters();renderIndGoals();}
@@ -738,7 +739,7 @@ function setIGPerson(p){igPerson=p;renderIGFilters();renderIndGoals();}
 function renderIndGoals(){
   renderIGFilters();
   let filtered=igFilter==='all'?indGoals:indGoals.filter(g=>g.goal_type===igFilter);
-  if(igPerson!=='all')filtered=filtered.filter(g=>g.member_name===igPerson);
+  if(igPerson!=='all')filtered=filtered.filter(g=>g.member_id===igPerson);
   const el=document.getElementById('ig-grid');
   if(!filtered.length){el.innerHTML=`<div style="color:var(--text-3);font-size:13px;padding:.5rem 0">No goals for this period.</div>`;return;}
   el.innerHTML=filtered.map(g=>{
@@ -746,7 +747,7 @@ function renderIndGoals(){
     const typeLabel={current_month:'This month',last_month:'Last month',next_month:'Next month'}[g.goal_type]||g.goal_type;
     return`<div class="ig-card">
       <div class="ig-head">
-        <div class="ig-name">${g.member_name||'—'}</div>
+        <div class="ig-name">${resolveMemberName(g)}</div>
         <div class="ig-type">${typeLabel}</div>
       </div>
       <div class="ig-tiers">
@@ -776,7 +777,11 @@ function openIGModal(id){
   document.getElementById('ig-modal-title').textContent=id?'Edit individual goal':'Add individual goal';
   document.getElementById('igm-delete-btn').style.display=id?'block':'none';
   const g=id?indGoals.find(x=>x.id===id):null;
-  document.getElementById('igm-name').value=g?.member_name||'';
+  /* populate member dropdown from roster */
+  const sel=document.getElementById('igm-member');
+  sel.innerHTML='<option value="">— Select member —</option>'+
+    members.map(m=>`<option value="${m.id}">${m.first} ${m.last}</option>`).join('');
+  sel.value=g?.member_id||'';
   document.getElementById('igm-type').value=g?.goal_type||'current_month';
   document.getElementById('igm-progress').value=g?.current_progress||0;
   document.getElementById('igm-final').value=g?.final_count||'';
@@ -787,11 +792,29 @@ function openIGModal(id){
   document.getElementById('ig-modal').classList.add('open');
 }
 function closeIGModal(){document.getElementById('ig-modal').classList.remove('open');}
+function resolveMemberName(g){
+  if(g.member_id){const m=members.find(x=>x.id===g.member_id);if(m)return m.first+' '+m.last;}
+  return g.member_name||'—';
+}
+
 async function saveIG(){
-  const name=document.getElementById('igm-name').value.trim();
-  if(!name){showToast('Name required.',true);return;}
-  const data={member_name:name,goal_type:document.getElementById('igm-type').value,current_progress:parseInt(document.getElementById('igm-progress').value)||0,final_count:parseInt(document.getElementById('igm-final').value)||null,quota_goal:parseInt(document.getElementById('igm-quota').value)||null,bronze_goal:parseInt(document.getElementById('igm-bronze').value)||null,silver_goal:parseInt(document.getElementById('igm-silver').value)||null,gold_goal:parseInt(document.getElementById('igm-gold').value)||null};
-  const {error}=editingIGId?await db.from('dash_individual_goals').update(data).eq('id',editingIGId):await db.from('dash_individual_goals').insert(data);
+  const memberId=document.getElementById('igm-member').value;
+  if(!memberId){showToast('Please select a team member.',true);return;}
+  const m=members.find(x=>x.id===memberId);
+  const data={
+    member_id:memberId,
+    member_name:m?m.first+' '+m.last:null,
+    goal_type:document.getElementById('igm-type').value,
+    current_progress:parseInt(document.getElementById('igm-progress').value)||0,
+    final_count:parseInt(document.getElementById('igm-final').value)||null,
+    quota_goal:parseInt(document.getElementById('igm-quota').value)||null,
+    bronze_goal:parseInt(document.getElementById('igm-bronze').value)||null,
+    silver_goal:parseInt(document.getElementById('igm-silver').value)||null,
+    gold_goal:parseInt(document.getElementById('igm-gold').value)||null
+  };
+  const {error}=editingIGId
+    ?await db.from('dash_individual_goals').update(data).eq('id',editingIGId)
+    :await db.from('dash_individual_goals').insert(data);
   if(error){showToast('Error: '+error.message,true);return;}
   showToast('Saved.');closeIGModal();await loadAll();
 }
