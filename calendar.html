@@ -754,7 +754,7 @@ function renderYearMonth(mName,mi,rm){
       const evs=getEventsForDate(dateStr,m.id);
       const hasMeeting=evs.some(e=>e.type==='meeting');
       const hasEvent=evs.some(e=>e.type==='event');
-      const cls=['cal-day',info.status,isFuture?'future-lock':'',isToday?'today-ring':''].filter(Boolean).join(' ');
+      const cls=['cal-day',info.status,isToday?'today-ring':''].filter(Boolean).join(' ');
       const exc=exceptions[`${m.id}-${dateStr}`];
       const timeLabel=exc?.time_in&&exc?.time_out?`${fmtTime12(exc.time_in).replace('am','').replace('pm','')}–${fmtTime12(exc.time_out)}`:info.status==='workday'?`${info.hours}h`:'';
       cells+=`<div class="${cls}" onclick="openDayModal('${m.id}','${dateStr}',${isFuture})">
@@ -817,7 +817,7 @@ function renderMonthView(rm){
       const timeLabel=exc?.time_in&&exc?.time_out?`${fmtTime12(exc.time_in)}–${fmtTime12(exc.time_out)}`:info.status==='workday'?`${fmtTime12(m.schedule?.[new Date(dateStr+'T12:00').getDay()]?.start)}–${fmtTime12(m.schedule?.[new Date(dateStr+'T12:00').getDay()]?.end)}`:'';
       const evs=getEventsForDate(dateStr,m.id);
       const evChips=evs.slice(0,2).map(e=>`<div class="mv-ev-chip" style="background:${e.color||'#F07050'}" onclick="event.stopPropagation();openEventModal('${e.id}')">"${e.title}"</div>`).join('');
-      const cls=['mv-day',info.status,isFuture?'future-lock':'',isToday?'today-ring':''].filter(Boolean).join(' ');
+      const cls=['mv-day',info.status,isToday?'today-ring':''].filter(Boolean).join(' ');
       cells+=`<div class="${cls}" onclick="jumpToDay('${dateStr}','${m.id}')">
         <div class="mv-day-num">${d}</div>
         ${timeLabel?`<div class="mv-day-hrs">${timeLabel}</div>`:''}
@@ -860,7 +860,7 @@ function renderWeekView(rm){
       const statusLabel={workday:'Working',nonwork:'Off',absent:'Absent',partial:'Partial',pto:'PTO',holiday:'Holiday'}[info.status]||info.status;
       const evs=getEventsForDate(ds,m.id).filter(e=>e.type==='meeting');
       const meetChips=evs.map(e=>`<div class="wdc-meeting" style="background:${e.color||'#3B82F6'}" onclick="event.stopPropagation();openEventModal('${e.id}')">${e.start_time?fmtTime12(e.start_time)+' ':''}${e.title}</div>`).join('');
-      return`<div class="week-day-cell ${info.status}${isFuture?' future-lock':''}" onclick="openDayModal('${m.id}','${ds}',${isFuture})">
+      return`<div class="week-day-cell ${info.status}" onclick="openDayModal('${m.id}','${ds}',${isFuture})">
         <div class="wdc-status" style="color:${info.status==='workday'?'var(--coral-dark)':info.status==='absent'?'var(--red-text)':info.status==='pto'?'#1D4ED8':info.status==='holiday'?'var(--purple)':'var(--text-3)'}">${statusLabel}</div>
         ${timeDisp?`<div class="wdc-time">${timeDisp}</div>`:''}
         ${meetChips}
@@ -908,7 +908,7 @@ function renderDayView(rm){
     const actualTimeStr=exc?.time_in&&exc?.time_out?`${fmtTime12(exc.time_in)} – ${fmtTime12(exc.time_out)}`:'';
     const schedHrs=schedSl?.on?hrsFromShift(schedSl.start,schedSl.end):0;
     const hoursWorked=exc?.hours||(info.status==='workday'?info.hours:0);
-    const hoursLost=Math.max(0,+(schedHrs-hoursWorked).toFixed(1));
+    const hoursLost=isFuture?0:Math.max(0,+(schedHrs-hoursWorked).toFixed(1));
     const statusLabel=info.isTeamHoliday?`Holiday: ${info.note}`:{workday:'Working',nonwork:'Off',absent:'Absent',partial:'Partial',pto:'PTO',holiday:'Holiday'}[info.status]||info.status;
     const memberEvs=getEventsForDate(ds,m.id).filter(e=>e.type==='meeting'&&e.member_ids?.includes(m.id));
     const meetChips=memberEvs.map(e=>{
@@ -923,7 +923,7 @@ function renderDayView(rm){
         ${actualTimeStr&&actualTimeStr!==schedTimeStr?`<div class="day-member-hrs" style="color:var(--amber-text);font-weight:600">Actual: ${actualTimeStr}</div>`:''}
         ${hoursWorked?`<div class="day-member-hrs">${hoursWorked}h${hoursLost>0?` · <span style="color:var(--red-text)">${hoursLost}h lost</span>`:''}</div>`:''}
       </div>
-      <div class="day-status-area${isFuture?' future-lock':''}" onclick="openDayModal('${m.id}','${ds}',${isFuture})">
+      <div class="day-status-area" onclick="openDayModal('${m.id}','${ds}',${isFuture})">
         <span class="day-status-badge dsb-${info.status}">${statusLabel}</span>
         ${info.note&&!info.isTeamHoliday?`<span class="day-note">${info.note}</span>`:''}
         <div class="day-member-meetings">${meetChips}</div>
@@ -935,7 +935,7 @@ function renderDayView(rm){
     <div class="day-view-head">
       <div>
         <div class="day-view-date">${DAYS_FULL[calDay.getDay()]}, ${MONTHS[calDay.getMonth()]} ${calDay.getDate()}, ${calDay.getFullYear()}</div>
-        ${isFuture?`<div class="day-view-dow" style="color:var(--amber-text)">Future — view only</div>`:''}
+        ${isFuture?`<div class="day-view-dow" style="color:var(--amber-text)">Upcoming — changes will be saved</div>`:''}
       </div>
     </div>
     <div class="day-team-section">
@@ -949,20 +949,19 @@ function renderDayView(rm){
 
 /* ══ DAY EDIT MODAL ══ */
 function openDayModal(memberId,dateStr,isFuture){
-  if(isFuture)return;
   if(teamHolidays[dateStr]){
     const h=teamHolidays[dateStr];
     const appliesToAll=!h.member_ids||h.member_ids.length===0;
     const appliesToMember=h.member_ids&&h.member_ids.includes(memberId);
     if(appliesToAll||appliesToMember){showToast(`${h.name} — team holiday. Edit via the event.`);return;}
   }
-  editingDayInfo={memberId,dateStr};
+  editingDayInfo={memberId,dateStr,isFuture};
   const info=getDayInfo(memberId,dateStr);
   const hasException=!!exceptions[`${memberId}-${dateStr}`];
   const dt=new Date(dateStr+'T12:00');
   const m=members.find(x=>x.id===memberId);
   document.getElementById('day-modal-title').textContent=`${m?.first} ${m?.last}`;
-  document.getElementById('day-modal-date').textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('day-modal-date').textContent=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+(isFuture?' (upcoming)':'');
   const dow=dt.getDay();const sched=m?.schedule?.[dow];
   if(sched?.on){
     const schedHrs=hrsFromShift(sched.start,sched.end);
@@ -1009,9 +1008,11 @@ function recalcHours(){
   if(!tin||!tout)return;
   const worked=Math.max(0,minsToHrs(timeToMins(tout)-timeToMins(tin)));
   document.getElementById('calc-worked').textContent=`${worked.toFixed(1)}h`;
-  if(editingDayInfo?.schedHrs){
+  if(editingDayInfo?.schedHrs&&!editingDayInfo.isFuture){
     const lost=Math.max(0,+(editingDayInfo.schedHrs-worked).toFixed(1));
     document.getElementById('calc-lost').textContent=lost>0?`${lost}h lost`:'';
+  } else {
+    document.getElementById('calc-lost').textContent='';
   }
 }
 async function saveException(){
