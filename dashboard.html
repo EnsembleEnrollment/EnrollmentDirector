@@ -726,7 +726,6 @@ function renderIGFilters(){
   document.getElementById('ig-filter-row').innerHTML=Object.entries(igFilterLabels).map(([k,v])=>
     `<div class="pill${igFilter===k?' active':''}" onclick="setIGFilter('${k}')">${v}</div>`
   ).join('');
-  const names=getIGPersonNames();
   const personRow=document.getElementById('ig-person-row');
   if(!personRow)return;
   personRow.innerHTML=`<div class="pill${igPerson==='all'?' active':''}" onclick="setIGPerson('all')">All</div>`+
