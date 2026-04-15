@@ -202,8 +202,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 13l2.5-3.5 2.5 2.5L15 8"/></svg>
       <span>Reports</span>
     </a>
-    <a class="nav-item" href="meetings.html">
+    <a class="nav-item" href="calendar.html">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M7 2v4M13 2v4M3 9h14"/></svg>
+      <span>Calendar</span>
+    </a>
+    <a class="nav-item" href="meetings.html">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 3"/></svg>
       <span>Meetings</span>
     </a>
     <a class="nav-item" href="notes.html">
@@ -222,6 +226,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <main class="main">
   <div class="topbar">
     <div class="topbar-title">Dashboard</div>
+    <a href="https://ensembleenrollment.github.io/EnrollmentHub/teamquicklinks.html" target="_blank" style="display:flex;align-items:center;gap:7px;padding:9px 18px;border:1.5px solid var(--coral);border-radius:10px;background:var(--coral);font-size:14px;font-weight:700;color:#fff;text-decoration:none;transition:all .15s;box-shadow:0 0 0 3px rgba(240,112,80,.18),0 2px 8px rgba(240,112,80,.25)" onmouseover="this.style.background='var(--coral-h)';this.style.borderColor='var(--coral-h)';this.style.boxShadow='0 0 0 5px rgba(240,112,80,.22),0 4px 14px rgba(240,112,80,.35)'" onmouseout="this.style.background='var(--coral)';this.style.borderColor='var(--coral)';this.style.boxShadow='0 0 0 3px rgba(240,112,80,.18),0 2px 8px rgba(240,112,80,.25)'">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3M9 2h5v5M14 2l-7 7"/></svg>
+      Quick Links — Enrollment Hub
+    </a>
     <div class="date-chip">
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1.5v3M11 1.5v3M2 7h12"/></svg>
       <span id="today-date"></span>
@@ -233,9 +241,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="dash-content" style="display:none">
 
       <!-- TEAM SNAPSHOT -->
-      <div class="snapshot-header">
+      <div class="snapshot-header" style="cursor:pointer" onclick="toggleSnapshot()">
         <div class="snapshot-title">Team snapshot — Pace calculator</div>
-        <div class="snapshot-month" id="snapshot-month"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="snapshot-month" id="snapshot-month"></div>
+          <button id="snapshot-toggle" onclick="event.stopPropagation();toggleSnapshot()" style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;color:var(--text-3);transition:all .12s" title="Minimize">
+            <svg id="snapshot-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .25s"><path d="M4 10l4-4 4 4"/></svg>
+          </button>
+        </div>
       </div>
       <div class="team-cards" id="team-cards"></div>
 
@@ -543,7 +556,7 @@ function buildSnapshotCard(m){
   } else {
     const remaining=Math.max(0,target-enrolled);
     if(remaining===0){
-      paceHtml=`<div class="pace-result done"><div class="pace-result-num">🎉</div><div class="pace-result-label">${tier.charAt(0).toUpperCase()+tier.slice(1)} reached! (${enrolled}/${target})</div></div>`;
+      paceHtml=`<div class="pace-result done"><div class="pace-result-num"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div class="pace-result-label">${tier.charAt(0).toUpperCase()+tier.slice(1)} reached! (${enrolled}/${target})</div></div>`;
     } else if(remDays===0){
       paceHtml=`<div class="pace-result" style="background:var(--red-light);border-color:var(--red-border)"><div class="pace-result-num" style="color:var(--red);font-size:16px">No days left</div><div class="pace-result-label">${remaining} short of ${tier}</div></div>`;
     } else {
@@ -611,7 +624,7 @@ async function saveEnrolled(memberId){
     if(data)snapshotEnrolled[memberId]={id:data.id,enrolled:data.enrolled_so_far};
   }
   const b=document.getElementById(`enrolled-btn-${memberId}`);
-  if(b){b.textContent='Saved ✓';b.className='enrolled-save-btn saved';}
+  if(b){b.innerHTML='<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l3.5 3.5 6.5-7"/></svg> Saved';b.className='enrolled-save-btn saved';}
   setTimeout(()=>{const b2=document.getElementById(`enrolled-btn-${memberId}`);if(b2){b2.textContent='Save';b2.className='enrolled-save-btn';}},2000);
 }
 
@@ -677,7 +690,7 @@ function renderTeamGoals(){
         <span class="goal-pct">${pct}%</span>
       </div>
       <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--text-3)">${(g.target||0)-(g.current_count||0)>0?`${(g.target||0)-(g.current_count||0)} to go`:'🎉 Goal reached!'}</div>
+      <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">${(g.target||0)-(g.current_count||0)>0?`${(g.target||0)-(g.current_count||0)} to go`:`<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l3.5 3.5 6.5-7"/></svg> Goal reached!`}</div>
     </div>`;
   }).join('');
 }
@@ -844,6 +857,23 @@ async function deleteIGById(id){
     if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');
   });
 });
+
+let snapshotMinimized=false;
+function toggleSnapshot(){
+  snapshotMinimized=!snapshotMinimized;
+  const cards=document.getElementById('team-cards');
+  const chevron=document.getElementById('snapshot-chevron');
+  const btn=document.getElementById('snapshot-toggle');
+  if(snapshotMinimized){
+    cards.style.display='none';
+    chevron.style.transform='rotate(180deg)';
+    btn.style.background='var(--bg)';
+  } else {
+    cards.style.display='grid';
+    chevron.style.transform='rotate(0deg)';
+    btn.style.background='none';
+  }
+}
 
 document.getElementById('today-date').textContent=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 loadAll();
